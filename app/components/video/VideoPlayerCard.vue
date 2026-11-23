@@ -14,6 +14,7 @@
     >
       <div style="position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000;">
         <iframe
+          v-if="!embedBlocked"
           ref="youtubeIframe"
           :key="youtubeVideoId"
           :src="youtubeEmbedUrl"
@@ -22,6 +23,39 @@
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
           allowfullscreen
         ></iframe>
+
+        <!-- Graceful fallback when video owner disables embedding (YouTube error 101 / 150) -->
+        <div
+          v-else
+          style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden;"
+        >
+          <img
+            :src="youtubeThumbnailUrl"
+            :alt="videoTitle"
+            style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.45);"
+          />
+          <div
+            class="d-flex flex-column align-center justify-center text-center pa-4"
+            style="position: absolute; inset: 0; color: white;"
+          >
+            <div class="text-caption mb-3" style="max-width: 300px; color: rgba(255,255,255,0.9); line-height: 1.4;">
+              La lecture intégrée est désactivée par la chaîne YouTube, mais votre assistant vocal Talkiz reste 100% fonctionnel ci-dessous.
+            </div>
+            <v-btn
+              :href="youtubeWatchUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              color="white"
+              variant="flat"
+              rounded="pill"
+              size="small"
+              class="text-none font-weight-bold text-black px-4"
+            >
+              <v-icon start color="red-darken-1" size="18">mdi-youtube</v-icon>
+              Regarder sur YouTube
+            </v-btn>
+          </div>
+        </div>
       </div>
       <v-card-text v-if="videoTitle" class="pa-3 d-flex align-center justify-space-between ga-2">
         <div class="text-subtitle-2 font-weight-bold text-black d-flex align-center" style="line-height: 1.3; min-width: 0;">
@@ -221,12 +255,23 @@ const agentPlayer = ref(null)
 const youtubeIframe = ref(null)
 const showQrModal = ref(false)
 const copied = ref(false)
+const embedBlocked = ref(false)
 
 const playerWidth = computed(() => props.project?.proj_link_width || '420px')
 
 const videoTitle = computed(() => props.project?.proj_youtube_title || props.project?.proj_name || '')
 
 const youtubeVideoId = computed(() => videoService.extractYoutubeId(props.project?.proj_youtube_url || ''))
+
+const youtubeThumbnailUrl = computed(() => {
+  if (!youtubeVideoId.value) return ''
+  return `https://img.youtube.com/vi/${youtubeVideoId.value}/hqdefault.jpg`
+})
+
+const youtubeWatchUrl = computed(() => {
+  if (!youtubeVideoId.value) return props.project?.proj_youtube_url || 'https://www.youtube.com'
+  return `https://www.youtube.com/watch?v=${youtubeVideoId.value}`
+})
 
 const youtubeEmbedUrl = computed(() => {
   if (!youtubeVideoId.value) return ''
@@ -282,6 +327,7 @@ const onYoutubeIframeLoad = () => {
   try {
     win.postMessage(JSON.stringify({ event: 'listening', id: 1, channel: 'widget' }), '*')
     win.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onStateChange'] }), '*')
+    win.postMessage(JSON.stringify({ event: 'command', func: 'addEventListener', args: ['onError'] }), '*')
   } catch (e) {
     console.warn('[TalkizVideo] Failed to register YouTube state listener:', e)
   }
@@ -294,6 +340,12 @@ const handleYoutubeMessage = (event) => {
     try { data = JSON.parse(data) } catch { return }
   }
   if (!data || typeof data !== 'object') return
+
+  // Detect YouTube embed-disabled error (101 / 150)
+  if (data.event === 'onError' && (data.info === 101 || data.info === 150)) {
+    embedBlocked.value = true
+    return
+  }
 
   let playerState = null
   if (data.event === 'onStateChange' && typeof data.info === 'number') {
@@ -386,6 +438,7 @@ const handleConversationEnded = () => {
 watch(() => props.project?.proj_uid, () => {
   clearYoutubeUserPauseTimer()
   isYoutubeCurrentlyPlaying = false
+  embedBlocked.value = false
 })
 
 onMounted(() => {
