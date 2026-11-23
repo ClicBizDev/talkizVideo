@@ -32,6 +32,9 @@ jobs:
           script: |
             cd /home/talkiz/talkiz-video
             cp /home/talkiz/.env.video .env
+            set -a
+            source .env
+            set +a
 
             # Sauvegarder les assets _nuxt du build précédent pour éviter les 404 MIME sur les onglets ouverts
             rm -rf /tmp/talkiz_video_nuxt_prev
@@ -45,6 +48,6 @@ jobs:
             # Restaurer les anciens assets _nuxt sans écraser les nouveaux
             cp -rn /tmp/talkiz_video_nuxt_prev/* .output/public/_nuxt/ 2>/dev/null || true
 
-            # Lancement / redémarrage via PM2 sur le port 3006
+            # Lancement / redémarrage via PM2 sur le port 3006 (avec variables .env chargées)
             PORT=3006 npx pm2 restart talkiz-video --update-env || PORT=3006 npx pm2 start .output/server/index.mjs --name "talkiz-video"
             npx pm2 save
