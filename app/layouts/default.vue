@@ -3,59 +3,59 @@
     <!-- Header Talkiz Video -->
     <v-app-bar
       :elevation="0"
-      height="64"
-      style="background: rgba(255, 255, 255, 0.92) !important; backdrop-filter: blur(12px); border-bottom: 1px solid #e2e8f0;"
+      height="58"
+      style="background: rgba(255, 255, 255, 0.94) !important; backdrop-filter: blur(12px); border-bottom: 1px solid #e2e8f0;"
     >
-      <div style="width: 100%; padding: 0 1rem;" class="d-flex justify-space-between align-center h-100">
+      <div class="header-inner d-flex justify-space-between align-center w-100 h-100 px-2 px-sm-4">
         <!-- Left: Videos drawer toggle + Logo -->
-        <div class="d-flex align-center ga-2">
+        <div class="d-flex align-center ga-1 ga-sm-2" style="min-width: 0;">
           <v-btn
             v-if="authStore.isAuthenticated"
             variant="tonal"
             color="primary"
             rounded="pill"
             size="small"
-            class="text-none font-weight-medium px-3"
+            class="text-none font-weight-medium px-2 px-sm-3 flex-shrink-0"
             @click="toggleVideosDrawer"
           >
-            <v-icon start size="18">mdi-playlist-play</v-icon>
+            <v-icon size="18" class="mr-sm-1">mdi-playlist-play</v-icon>
             <span class="d-none d-sm-inline">Mes vidéos</span>
             <v-chip
               v-if="videosStore.videos.length > 0"
               size="x-small"
               color="primary"
               variant="flat"
-              class="ml-2 font-weight-bold"
+              class="ml-1 ml-sm-2 font-weight-bold"
             >
               {{ videosStore.videos.length }}
             </v-chip>
           </v-btn>
 
-          <NuxtLink to="/" class="d-flex align-center text-decoration-none ml-1" style="gap: 0.55rem;">
+          <NuxtLink to="/" class="d-flex align-center text-decoration-none ml-1" style="gap: 0.4rem; min-width: 0;">
             <img
               src="/logo-talkiz-icon.svg"
               alt="Talkiz"
-              style="height: 2.1rem; width: 2.1rem; background-color: #000000; border-radius: 0.6rem; padding: 4px;"
+              class="brand-icon flex-shrink-0"
             />
-            <span style="font-size: 1.55rem; line-height: 1.8rem; font-weight: 700; color: #2196F3; letter-spacing: -0.025em;">
+            <span class="brand-wordmark">
               Talkiz<span style="color: #0f172a;">.ai</span>
             </span>
-            <v-chip size="x-small" color="red-darken-1" variant="tonal" class="font-weight-bold d-none d-sm-inline-flex">
+            <v-chip size="x-small" color="red-darken-1" variant="tonal" class="font-weight-bold d-none d-md-inline-flex">
               Video
             </v-chip>
           </NuxtLink>
         </div>
 
         <!-- Right: Credits counter + Recharge + Account icon -->
-        <div v-if="authStore.isAuthenticated" class="d-flex align-center ga-2">
+        <div v-if="authStore.isAuthenticated" class="d-flex align-center ga-1 ga-sm-2 flex-shrink-0">
           <!-- Credit counter (1 crédit = 1 minute) -->
           <div class="d-flex align-center rounded-pill px-2 py-1" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
             <v-tooltip text="1 crédit = 1 minute de conversation vocale" location="bottom">
               <template #activator="{ props: tooltipProps }">
                 <div v-bind="tooltipProps" class="d-flex align-center ga-1 px-1">
-                  <v-icon size="16" :color="creditIconColor">mdi-timer-outline</v-icon>
-                  <span class="text-caption font-weight-bold" :style="{ color: creditTextColor }">
-                    {{ authStore.formattedCredits }} min
+                  <v-icon size="15" :color="creditIconColor">mdi-timer-outline</v-icon>
+                  <span class="text-caption font-weight-bold text-no-wrap" :style="{ color: creditTextColor }">
+                    {{ authStore.formattedCredits }}<span class="d-none d-sm-inline"> min</span>
                   </span>
                 </div>
               </template>
@@ -66,6 +66,7 @@
               size="x-small"
               variant="text"
               color="grey-darken-1"
+              class="d-none d-sm-inline-flex"
               :loading="authStore.isRefreshingCredits"
               title="Rafraîchir les crédits"
               @click="refreshCredits"
@@ -88,11 +89,12 @@
           <!-- Account Icon -->
           <v-btn
             icon
+            size="small"
             variant="text"
             title="Mon compte"
             @click="showAccountDialog = true"
           >
-            <v-avatar size="34" color="primary">
+            <v-avatar size="32" color="primary">
               <v-img v-if="authStore.avatarUrl" :src="authStore.avatarUrl" :alt="authStore.fullName" />
               <span v-else class="text-caption font-weight-bold text-white">{{ authStore.initials }}</span>
             </v-avatar>
@@ -174,3 +176,34 @@ onUnmounted(() => {
   if (authListener) authListener.unsubscribe()
 })
 </script>
+
+<style scoped>
+.brand-icon {
+  height: 1.9rem;
+  width: 1.9rem;
+  background-color: #000000;
+  border-radius: 0.55rem;
+  padding: 4px;
+}
+
+.brand-wordmark {
+  font-size: 1.25rem;
+  line-height: 1.5rem;
+  font-weight: 700;
+  color: #2196F3;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+}
+
+@media (min-width: 600px) {
+  .brand-icon {
+    height: 2.1rem;
+    width: 2.1rem;
+  }
+
+  .brand-wordmark {
+    font-size: 1.5rem;
+    line-height: 1.8rem;
+  }
+}
+</style>

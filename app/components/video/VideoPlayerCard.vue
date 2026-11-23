@@ -1,13 +1,12 @@
 <template>
-  <div v-if="project" class="d-flex flex-column align-center w-100">
-    <!-- YouTube Video Player Card (same design as ask.talkiz.ai) -->
+  <div v-if="project" class="video-player-wrapper d-flex flex-column align-center w-100">
+    <!-- YouTube Video Player Card -->
     <v-card
       v-if="youtubeVideoId"
-      class="mb-4 link-preview-card overflow-hidden"
+      class="mb-3 mb-sm-4 link-preview-card overflow-hidden w-100"
       variant="elevated"
       :style="{
-        width: playerWidth,
-        maxWidth: '100%',
+        maxWidth: playerMaxWidth,
         border: '1px solid #eaeaea',
         borderRadius: project.proj_link_border_radius || '12px'
       }"
@@ -24,7 +23,7 @@
           allowfullscreen
         ></iframe>
 
-        <!-- Graceful fallback when video owner disables embedding (YouTube error 101 / 150) -->
+        <!-- Honest fallback when video owner disables embedding (YouTube error 101 / 150) -->
         <div
           v-else
           style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden;"
@@ -32,14 +31,18 @@
           <img
             :src="youtubeThumbnailUrl"
             :alt="videoTitle"
-            style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.45);"
+            style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.32);"
           />
           <div
-            class="d-flex flex-column align-center justify-center text-center pa-4"
+            class="d-flex flex-column align-center justify-center text-center pa-3 pa-sm-4"
             style="position: absolute; inset: 0; color: white;"
           >
-            <div class="text-caption mb-3" style="max-width: 300px; color: rgba(255,255,255,0.9); line-height: 1.4;">
-              La lecture intégrée est désactivée par la chaîne YouTube, mais votre assistant vocal Talkiz reste 100% fonctionnel ci-dessous.
+            <v-chip size="x-small" color="warning" variant="flat" class="mb-2 font-weight-bold">
+              <v-icon start size="14">mdi-alert-outline</v-icon>
+              Fonctions limitées
+            </v-chip>
+            <div class="text-caption mb-3" style="max-width: 340px; color: rgba(255,255,255,0.92); line-height: 1.4;">
+              La chaîne YouTube interdit la lecture intégrée : le pilotage de la vidéo (positionnement sur un passage, pause/reprise synchronisée) n'est pas disponible. Vous pouvez toutefois poser vos questions à l'assistant ci-dessous.
             </div>
             <v-btn
               :href="youtubeWatchUrl"
@@ -57,6 +60,7 @@
           </div>
         </div>
       </div>
+
       <v-card-text v-if="videoTitle" class="pa-3 d-flex align-center justify-space-between ga-2">
         <div class="text-subtitle-2 font-weight-bold text-black d-flex align-center" style="line-height: 1.3; min-width: 0;">
           <v-icon size="small" color="red-darken-1" class="mr-2 flex-shrink-0">mdi-youtube</v-icon>
@@ -77,16 +81,6 @@
               {{ copied ? 'mdi-check' : 'mdi-link-variant' }}
             </v-icon>
           </v-btn>
-          <v-btn
-            icon
-            size="x-small"
-            variant="text"
-            color="grey-darken-1"
-            title="Partager via QR Code"
-            @click="showQrModal = true"
-          >
-            <v-icon size="18">mdi-qrcode</v-icon>
-          </v-btn>
         </div>
       </v-card-text>
     </v-card>
@@ -95,10 +89,9 @@
     <v-card
       v-if="creditsDepleted"
       variant="outlined"
-      class="mb-4 pa-5 text-center"
+      class="mb-4 pa-4 pa-sm-5 text-center w-100"
       :style="{
-        width: playerWidth,
-        maxWidth: '100%',
+        maxWidth: playerMaxWidth,
         borderColor: '#fecaca',
         background: '#fef2f2',
         borderRadius: project.proj_link_border_radius || '12px'
@@ -124,105 +117,50 @@
     </v-card>
 
     <!-- Talkiz Voice Agent Player (LiveBannerPlayer or RealtimeBannerPlayer) -->
-    <component
-      v-else
-      :is="playerComponent"
-      :key="project.proj_uid"
-      ref="agentPlayer"
-      :projectConfig="project"
-      :clientUid="project.proj_client_uid || project.client_uid"
-      :projectUid="project.proj_uid"
-      :width="playerWidth"
-      :height="project.proj_link_height || '150px'"
-      style="max-width: 100%;"
-      :bgColor="project.proj_link_display_bg_color || 'white'"
-      :bgCustom="project.proj_link_display_bg_custom || '#FFFFFF'"
-      :textColor="project.proj_link_display_text_color || 'black'"
-      :textCustom="project.proj_link_display_text_custom || '#000000'"
-      :borderRadius="project.proj_link_border_radius || '12px'"
-      :invitationText="project.proj_link_invitation_text || 'Ou cliquez ici et je répondrai à vos questions !'"
-      :voiceType="project.proj_oart_voice_type"
-      :voiceSpeed="project.proj_oart_voice_speed"
-      :temperature="project.proj_oart_temperature"
-      :suggestedQuestions="[
-        project.proj_plugin_btn_text_1,
-        project.proj_plugin_btn_text_2,
-        project.proj_plugin_btn_text_3,
-        project.proj_plugin_btn_text_4,
-        project.proj_plugin_btn_text_5
-      ]"
-      :autoStart="false"
-      :hasEmbeddedYoutubePlayer="!!youtubeVideoId"
-      @conversation-started="handleConversationStarted"
-      @seek-youtube="seekYoutubeVideo"
-      @close="handleConversationEnded"
-    />
+    <div v-else class="w-100 d-flex justify-center" :style="{ maxWidth: playerMaxWidth }">
+      <component
+        :is="playerComponent"
+        :key="project.proj_uid"
+        ref="agentPlayer"
+        :projectConfig="project"
+        :clientUid="project.proj_client_uid || project.client_uid"
+        :projectUid="project.proj_uid"
+        width="100%"
+        :height="project.proj_link_height || '150px'"
+        style="width: 100%; max-width: 100%;"
+        :bgColor="project.proj_link_display_bg_color || 'white'"
+        :bgCustom="project.proj_link_display_bg_custom || '#FFFFFF'"
+        :textColor="project.proj_link_display_text_color || 'black'"
+        :textCustom="project.proj_link_display_text_custom || '#000000'"
+        :borderRadius="project.proj_link_border_radius || '12px'"
+        :invitationText="project.proj_link_invitation_text || 'Ou cliquez ici et je répondrai à vos questions !'"
+        :voiceType="project.proj_oart_voice_type"
+        :voiceSpeed="project.proj_oart_voice_speed"
+        :temperature="project.proj_oart_temperature"
+        :suggestedQuestions="[
+          project.proj_plugin_btn_text_1,
+          project.proj_plugin_btn_text_2,
+          project.proj_plugin_btn_text_3,
+          project.proj_plugin_btn_text_4,
+          project.proj_plugin_btn_text_5
+        ]"
+        :autoStart="false"
+        :hasEmbeddedYoutubePlayer="!!youtubeVideoId && !embedBlocked"
+        @conversation-started="handleConversationStarted"
+        @seek-youtube="seekYoutubeVideo"
+        @close="handleConversationEnded"
+      />
+    </div>
 
-    <!-- Footer copyright + QR button -->
+    <!-- Footer copyright -->
     <div
-      class="d-flex justify-space-between align-center mt-3"
-      :style="{ width: playerWidth, maxWidth: '100%', padding: '0 4px' }"
+      class="d-flex justify-center align-center mt-3 w-100"
+      :style="{ maxWidth: playerMaxWidth, padding: '0 4px' }"
     >
       <div style="font-size: 11px; color: #94a3b8;">
         &copy; 2026 Talkiz.ai — 1 crédit = 1 minute
       </div>
-      <v-btn
-        v-if="showShareActions"
-        icon="mdi-qrcode"
-        size="x-small"
-        color="white"
-        elevation="1"
-        @click="showQrModal = true"
-        title="Partager via QR Code"
-      ></v-btn>
     </div>
-
-    <!-- QR Code Share Modal -->
-    <v-dialog v-model="showQrModal" max-width="340">
-      <v-card class="rounded-xl pa-2 text-center">
-        <v-btn
-          icon="mdi-close"
-          variant="text"
-          size="small"
-          class="position-absolute"
-          style="top: 8px; right: 8px; z-index: 10;"
-          @click="showQrModal = false"
-        ></v-btn>
-        <v-card-text class="d-flex flex-column align-center justify-center pa-6">
-          <div class="text-subtitle-2 font-weight-bold mb-3">Partager cette vidéo</div>
-          <div
-            class="position-relative d-inline-block mb-4"
-            style="padding: 10px; background: white; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);"
-          >
-            <qrcode-vue
-              v-if="shareUrl"
-              :value="shareUrl"
-              :size="190"
-              level="H"
-              :background="'#FFFFFF'"
-              :foreground="'#2196f3'"
-            />
-            <img
-              src="/logo-talkiz-badge.svg"
-              alt="Talkiz Logo"
-              class="position-absolute"
-              style="inset: 0; margin: auto; width: 48px; height: 48px; background: white; border-radius: 12px; padding: 4px;"
-            />
-          </div>
-          <v-btn
-            block
-            variant="tonal"
-            color="primary"
-            size="small"
-            rounded="pill"
-            @click="copyShareLink"
-          >
-            <v-icon start size="16">{{ copied ? 'mdi-check' : 'mdi-content-copy' }}</v-icon>
-            {{ copied ? 'Lien copié !' : 'Copier le lien' }}
-          </v-btn>
-        </v-card-text>
-      </v-card>
-    </v-dialog>
   </div>
 </template>
 
@@ -230,7 +168,6 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
 import RealtimeBannerPlayer from '../avatar/RealtimeBannerPlayer.vue'
 import LiveBannerPlayer from '../avatar/LiveBannerPlayer.vue'
-import QrcodeVue from 'qrcode.vue'
 import videoService from '../../services/video.service.js'
 
 const props = defineProps({
@@ -253,11 +190,10 @@ const emit = defineEmits(['conversation-ended'])
 const config = useRuntimeConfig()
 const agentPlayer = ref(null)
 const youtubeIframe = ref(null)
-const showQrModal = ref(false)
 const copied = ref(false)
 const embedBlocked = ref(false)
 
-const playerWidth = computed(() => props.project?.proj_link_width || '420px')
+const playerMaxWidth = computed(() => props.project?.proj_link_width || '440px')
 
 const videoTitle = computed(() => props.project?.proj_youtube_title || props.project?.proj_name || '')
 
@@ -396,6 +332,7 @@ const handleYoutubeMessage = (event) => {
 }
 
 const pauseYoutubeVideo = () => {
+  if (embedBlocked.value) return
   clearYoutubeUserPauseTimer()
   programmaticYoutubeActionUntil = Date.now() + 1500
   isYoutubeCurrentlyPlaying = false
@@ -406,6 +343,7 @@ const pauseYoutubeVideo = () => {
 }
 
 const seekYoutubeVideo = (seconds) => {
+  if (embedBlocked.value) return
   clearYoutubeUserPauseTimer()
   programmaticYoutubeActionUntil = Date.now() + 1500
   const sec = Math.max(0, Math.floor(Number(seconds) || 0))
@@ -429,7 +367,6 @@ const handleConversationStarted = () => {
 }
 
 const handleConversationEnded = () => {
-  // Wait briefly so DialogServer finishes saving conversation & updating client_credit_budget
   setTimeout(() => {
     emit('conversation-ended')
   }, 1500)

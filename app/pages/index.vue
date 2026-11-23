@@ -1,8 +1,8 @@
 <template>
-  <div class="d-flex flex-column align-center px-4 py-6" style="min-height: calc(100vh - 64px);">
-    <!-- 1. YouTube URL Bar (always visible at top, matching screenshots 1 & 3) -->
-    <div class="w-100 d-flex flex-column align-center" style="max-width: 560px;">
-      <div class="d-flex align-center ga-3 w-100">
+  <div class="d-flex flex-column align-center px-3 py-4 px-sm-4 py-sm-6" style="min-height: calc(100vh - 58px);">
+    <!-- 1. YouTube URL Bar (always visible at top, mobile-friendly) -->
+    <div class="w-100 d-flex flex-column align-center" style="max-width: 520px;">
+      <div class="d-flex align-center ga-2 ga-sm-3 w-100">
         <div class="yt-input-pill flex-grow-1 d-flex align-center">
           <input
             v-model="youtubeUrl"
@@ -26,13 +26,14 @@
         <v-btn
           icon
           color="#2196F3"
-          size="48"
+          size="44"
           elevation="2"
+          class="flex-shrink-0"
           :disabled="processing || !youtubeUrl.trim()"
           title="Analyser cette vidéo YouTube"
           @click="handleAddVideo"
         >
-          <v-icon color="white" size="26">mdi-plus</v-icon>
+          <v-icon color="white" size="24">mdi-plus</v-icon>
         </v-btn>
       </div>
 
@@ -60,26 +61,26 @@
         You will be notified by email when the process is complete.
       </div>
 
-      <v-card class="pa-8 w-100 rounded-xl d-flex flex-column align-center" elevation="1" style="border: 1px solid #e2e8f0;">
-        <div class="text-h6 font-weight-bold mb-6" style="letter-spacing: 0.04em; color: #0f172a;">
+      <v-card class="pa-5 pa-sm-8 w-100 rounded-xl d-flex flex-column align-center" elevation="1" style="border: 1px solid #e2e8f0;">
+        <div class="text-h6 font-weight-bold mb-5" style="letter-spacing: 0.04em; color: #0f172a;">
           PROCESSING ...
         </div>
 
         <v-progress-circular
           indeterminate
           color="#2196F3"
-          size="56"
+          size="52"
           width="4"
-          class="mb-6"
+          class="mb-5"
         />
 
         <!-- Source pill -->
         <div
-          class="px-4 py-2 rounded-pill d-inline-flex align-center mb-4"
+          class="px-3 py-2 rounded-pill d-inline-flex align-center mb-4"
           style="background: #f4f6f9; border: 1px solid #e3e8ef; max-width: 100%;"
         >
           <v-icon size="18" color="#ff0000" class="mr-2 flex-shrink-0">mdi-youtube</v-icon>
-          <span class="text-caption font-weight-medium text-truncate" style="color: #334155; max-width: 380px;">
+          <span class="text-caption font-weight-medium text-truncate" style="color: #334155; max-width: 70vw;">
             {{ processingUrl }}
           </span>
         </div>
@@ -360,8 +361,9 @@ onUnmounted(() => {
   background: #ffffff;
   border: 1.5px solid #cbd5e1;
   border-radius: 14px;
-  height: 48px;
-  padding: 0 14px;
+  height: 44px;
+  padding: 0 12px;
+  min-width: 0;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 

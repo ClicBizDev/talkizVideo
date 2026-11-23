@@ -149,7 +149,7 @@ const plans = [
     features: [
       '100 crédits = 100 minutes vocales',
       'Vidéos longues prises en charge',
-      'Partage public + QR Code',
+      'Partage par lien via video.talkiz.ai',
       'Priorité sur l’analyse vidéo',
     ],
   },
@@ -165,7 +165,7 @@ const plans = [
     features: [
       '350 crédits = 350 minutes vocales',
       'Vidéos illimitées dans votre bibliothèque',
-      'Partage public + QR Code',
+      'Partage par lien via video.talkiz.ai',
       'Support prioritaire',
     ],
   },
