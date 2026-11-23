@@ -1,0 +1,50 @@
+name: Déploiement TalkizVideo (Frontend)
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copier les fichiers vers OVH (SCP)
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          source: "."
+          target: "/home/talkiz/talkiz-video"
+
+      - name: Build & Restart PM2 sur OVH (SSH)
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd /home/talkiz/talkiz-video
+            cp /home/talkiz/.env.video .env
+
+            # Sauvegarder les assets _nuxt du build précédent pour éviter les 404 MIME sur les onglets ouverts
+            rm -rf /tmp/talkiz_video_nuxt_prev
+            mkdir -p /tmp/talkiz_video_nuxt_prev
+            cp -r .output/public/_nuxt/* /tmp/talkiz_video_nuxt_prev/ 2>/dev/null || true
+
+            # Installation des dépendances & compilation
+            npm install
+            npm run build
+
+            # Restaurer les anciens assets _nuxt sans écraser les nouveaux
+            cp -rn /tmp/talkiz_video_nuxt_prev/* .output/public/_nuxt/ 2>/dev/null || true
+
+            # Lancement / redémarrage via PM2 sur le port 3006
+            PORT=3006 npx pm2 restart talkiz-video --update-env || PORT=3006 npx pm2 start .output/server/index.mjs --name "talkiz-video"
+            npx pm2 save
