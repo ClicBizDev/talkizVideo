@@ -37,7 +37,7 @@
               alt="Talkiz"
               class="brand-icon flex-shrink-0"
             />
-            <span class="brand-wordmark">
+            <span class="brand-wordmark d-none d-sm-inline">
               Talkiz<span style="color: #0f172a;">.ai</span>
             </span>
             <v-chip size="x-small" color="red-darken-1" variant="tonal" class="font-weight-bold d-none d-md-inline-flex">
