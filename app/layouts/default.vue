@@ -109,8 +109,26 @@
     <!-- Account Dialog -->
     <AccountDialog v-if="authStore.isAuthenticated" v-model="showAccountDialog" />
 
-    <v-main style="background: #f8fafc; min-height: 100vh;">
-      <slot />
+    <v-main class="d-flex flex-column" style="background: #f8fafc; min-height: 100vh;">
+      <div class="flex-grow-1">
+        <slot />
+      </div>
+
+      <!-- Legal Footer -->
+      <footer class="legal-footer px-4 py-4 text-center">
+        <div class="d-flex flex-wrap justify-center align-center ga-2 text-caption" style="color: #64748b;">
+          <span>&copy; 2026 Talkiz.ai — 1 crédit = 1 minute</span>
+          <span class="d-none d-sm-inline">&bull;</span>
+          <div class="d-flex flex-wrap justify-center align-center ga-3">
+            <NuxtLink to="/cgu" class="legal-link">CGU</NuxtLink>
+            <NuxtLink to="/confidentialite" class="legal-link">Confidentialité</NuxtLink>
+            <NuxtLink to="/mentions-legales" class="legal-link">Mentions légales</NuxtLink>
+          </div>
+        </div>
+        <div class="mt-2 mx-auto" style="font-size: 11px; color: #94a3b8; max-width: 720px; line-height: 1.45;">
+          Talkiz Video est un service indépendant, non affilié, non sponsorisé et non approuvé par YouTube ou Google LLC. YouTube est une marque déposée de Google LLC.
+        </div>
+      </footer>
     </v-main>
   </v-app>
 </template>
@@ -162,7 +180,8 @@ onMounted(() => {
       authStore.clearUser()
       videosStore.clearActiveVideo()
       const route = useRoute()
-      if (route.path !== '/login' && !route.path.startsWith('/auth')) {
+      const publicPaths = ['/login', '/cgu', '/confidentialite', '/mentions-legales']
+      if (!publicPaths.includes(route.path) && !route.path.startsWith('/auth')) {
         navigateTo('/login')
       }
     } else if (session?.access_token) {
@@ -193,6 +212,22 @@ onUnmounted(() => {
   color: #2196F3;
   letter-spacing: -0.025em;
   white-space: nowrap;
+}
+
+.legal-footer {
+  border-top: 1px solid #e2e8f0;
+  background: #ffffff;
+}
+
+.legal-link {
+  color: #64748b;
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.legal-link:hover {
+  color: #2196F3;
+  text-decoration: underline;
 }
 
 @media (min-width: 600px) {

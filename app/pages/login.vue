@@ -115,8 +115,14 @@
       </div>
 
       <!-- Legal footer -->
-      <p class="legal-note text-center mt-6 mb-0">
-        En continuant, vous acceptez les conditions d'utilisation de Talkiz.ai et notre Politique de confidentialité.
+      <p class="legal-note text-center mt-6 mb-2">
+        En continuant, vous acceptez les
+        <NuxtLink to="/cgu" class="legal-inline-link">Conditions d'utilisation</NuxtLink>,
+        la <NuxtLink to="/confidentialite" class="legal-inline-link">Politique de confidentialité</NuxtLink>
+        et les <NuxtLink to="/mentions-legales" class="legal-inline-link">Mentions légales</NuxtLink>.
+      </p>
+      <p class="legal-note text-center mb-0" style="font-size: 0.7rem; opacity: 0.8;">
+        Talkiz Video est un service indépendant, non affilié, non sponsorisé et non approuvé par YouTube ou Google LLC. YouTube est une marque déposée de Google LLC.
       </p>
     </div>
   </div>
@@ -351,5 +357,14 @@ const loginWithEmail = async () => {
   font-size: 0.75rem;
   color: #6b7280;
   line-height: 1.45;
+}
+
+.legal-inline-link {
+  color: #9ca3af;
+  text-decoration: underline;
+}
+
+.legal-inline-link:hover {
+  color: #ffffff;
 }
 </style>

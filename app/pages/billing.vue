@@ -133,7 +133,7 @@ const plans = [
     features: [
       '30 crédits = 30 minutes vocales',
       'Analyse audio + visuelle YouTube',
-      'Partage public via video.talkiz.ai',
+      'Bibliothèque vidéo 100% privée',
       'Historique de vos vidéos',
     ],
   },
@@ -149,7 +149,7 @@ const plans = [
     features: [
       '100 crédits = 100 minutes vocales',
       'Vidéos longues prises en charge',
-      'Partage par lien via video.talkiz.ai',
+      'Bibliothèque vidéo 100% privée',
       'Priorité sur l’analyse vidéo',
     ],
   },
@@ -165,7 +165,7 @@ const plans = [
     features: [
       '350 crédits = 350 minutes vocales',
       'Vidéos illimitées dans votre bibliothèque',
-      'Partage par lien via video.talkiz.ai',
+      'Accès privé et sécurisé',
       'Support prioritaire',
     ],
   },

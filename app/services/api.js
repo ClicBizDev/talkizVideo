@@ -53,8 +53,11 @@ export function apiClient() {
     instance.interceptors.response.use(
         (response) => response,
         (error) => {
-            if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-                console.warn(`[API] Session expirée (${error.response.status} sur ${error.config?.url})`)
+            const status = error.response?.status
+            const errCode = error.response?.data?.code
+            // Do not treat business 403 errors (e.g. EMBED_DISABLED) as expired sessions
+            if (status === 401 || (status === 403 && errCode !== 'EMBED_DISABLED')) {
+                console.warn(`[API] Session expirée (${status} sur ${error.config?.url})`)
                 setAccessToken('')
                 if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
                     window.location.href = '/login'

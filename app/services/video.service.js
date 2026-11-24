@@ -40,12 +40,12 @@ async function listVideos(clientUid) {
 }
 
 /**
- * Load full project configuration (public endpoint — same structure as ask.talkiz.ai)
+ * Load full project configuration (strictly private — verified via Supabase Bearer JWT)
  */
-async function getPublicProject(projUidOrSlug) {
-    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(projUidOrSlug)
-    const params = isUUID ? { proj_uid: projUidOrSlug } : { proj_slug: projUidOrSlug }
-    const { data } = await apiClient().get('/project/public', { params })
+async function getPrivateProject(projUid) {
+    const { data } = await apiClient().get('/project/private', {
+        params: { proj_uid: projUid },
+    })
     return data?.results?.data || null
 }
 
@@ -107,15 +107,24 @@ async function removeVideo(clientUid, projectUid) {
     return data
 }
 
+/**
+ * RGPD Right to Erasure: permanently delete account & all associated data
+ */
+async function deleteAccount() {
+    const { data } = await apiClient().delete('/user/account')
+    return data
+}
+
 export default {
     extractYoutubeId,
     isValidYoutubeUrl,
     createProfile,
     listVideos,
-    getPublicProject,
+    getPrivateProject,
     createYoutubeProject,
     startYoutubeAnalysis,
     getYoutubeTaskStatus,
     notifyComplete,
     removeVideo,
+    deleteAccount,
 }

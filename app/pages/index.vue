@@ -106,26 +106,27 @@
       <div class="text-caption text-grey-darken-1 mt-3">Chargement du player...</div>
     </div>
 
-    <!-- 3. Active Video Player directly underneath the URL bar (matching screenshot 3) -->
+    <!-- 3. Active Video Player directly underneath the URL bar -->
     <div v-else-if="videosStore.activeVideo" class="mt-5 w-100 d-flex justify-center">
       <VideoPlayerCard
         :project="videosStore.activeVideo"
         :creditsDepleted="!authStore.hasCredits"
-        :showShareActions="true"
         @conversation-ended="onConversationEnded"
       />
     </div>
 
     <!-- Empty welcome state when no video is selected yet -->
-    <div v-else class="d-flex flex-column align-center text-center mt-14 px-4" style="max-width: 460px;">
+    <div v-else class="d-flex flex-column align-center text-center mt-14 px-4" style="max-width: 480px;">
       <v-avatar size="68" color="#eff6ff" class="mb-4">
-        <v-icon size="38" color="#ff0000">mdi-youtube</v-icon>
+        <v-icon size="38" color="#2196F3">mdi-play-circle-outline</v-icon>
       </v-avatar>
       <h1 class="text-h6 font-weight-bold mb-2" style="color: #0f172a;">
-        Discutez à la voix avec n'importe quelle vidéo YouTube
+        Discutez à la voix avec une vidéo YouTube
       </h1>
-      <p class="text-body-2 text-grey-darken-1 mb-5">
-        Collez le lien d'une vidéo YouTube ci-dessus et cliquez sur <strong>+</strong>. Talkiz analyse l'audio et le visuel, puis génère votre assistant vocal interactif.
+      <p class="text-body-2 text-grey-darken-1 mb-5" style="line-height: 1.55;">
+        Collez le lien d'une vidéo YouTube publique ci-dessus et cliquez sur
+        <span class="inline-plus-btn" aria-hidden="true">+</span>.<br />
+        Talkiz génère votre assistant vocal interactif pour répondre à toutes vos questions.
       </p>
       <v-btn
         v-if="videosStore.videos.length > 0"
@@ -274,6 +275,7 @@ const handleAddVideo = async () => {
   startTimer()
 
   const lang = getBrowserLanguage()
+  let createdProjUid = null
 
   try {
     // 1. Create YouTube project shell
@@ -288,8 +290,9 @@ const handleAddVideo = async () => {
     }
 
     const projUid = createRes.results.proj_uid
+    createdProjUid = projUid
 
-    // 2. Launch async multimodal YouTube analysis
+    // 2. Launch async multimodal YouTube analysis (includes backend EMBED_DISABLED pre-flight check)
     processingPhase.value = 'Connecting to YouTube & fetching video metadata...'
     processingSubDetail.value = 'Checking video duration & preparing multimodal analysis'
 
@@ -335,7 +338,18 @@ const handleAddVideo = async () => {
     stopTimers()
     processing.value = false
     processingSubDetail.value = ''
-    errorMsg.value = err?.response?.data?.message || err?.message || 'Erreur lors du traitement de la vidéo YouTube.'
+
+    const errCode = err?.response?.data?.code
+    // Clean up empty orphan project shell if video was rejected pre-flight
+    if (createdProjUid && (errCode === 'EMBED_DISABLED' || err?.response?.status === 403)) {
+      videoService.removeVideo(clientUid, createdProjUid).catch(() => {})
+    }
+
+    if (errCode === 'EMBED_DISABLED') {
+      errorMsg.value = "Le créateur de cette vidéo n'autorise pas son intégration sur des applications tierces. Talkiz Video respecte ce choix et ne peut pas analyser cette vidéo."
+    } else {
+      errorMsg.value = err?.response?.data?.message || err?.message || 'Erreur lors du traitement de la vidéo YouTube.'
+    }
   }
 }
 
@@ -400,5 +414,22 @@ onUnmounted(() => {
 .yt-clear-btn:hover {
   color: #0f172a;
   background: #f1f5f9;
+}
+
+.inline-plus-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: #2196F3;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1;
+  vertical-align: middle;
+  margin: 0 2px;
+  box-shadow: 0 2px 4px rgba(33, 150, 243, 0.3);
 }
 </style>

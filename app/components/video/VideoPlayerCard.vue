@@ -23,7 +23,7 @@
           allowfullscreen
         ></iframe>
 
-        <!-- Honest fallback when video owner disables embedding (YouTube error 101 / 150) -->
+        <!-- Strict block when video owner disables embedding (YouTube error 101 / 150) -->
         <div
           v-else
           style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden;"
@@ -31,18 +31,15 @@
           <img
             :src="youtubeThumbnailUrl"
             :alt="videoTitle"
-            style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.32);"
+            style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.28);"
           />
           <div
             class="d-flex flex-column align-center justify-center text-center pa-3 pa-sm-4"
             style="position: absolute; inset: 0; color: white;"
           >
-            <v-chip size="x-small" color="warning" variant="flat" class="mb-2 font-weight-bold">
-              <v-icon start size="14">mdi-alert-outline</v-icon>
-              Fonctions limitées
-            </v-chip>
-            <div class="text-caption mb-3" style="max-width: 340px; color: rgba(255,255,255,0.92); line-height: 1.4;">
-              La chaîne YouTube interdit la lecture intégrée : le pilotage de la vidéo (positionnement sur un passage, pause/reprise synchronisée) n'est pas disponible. Vous pouvez toutefois poser vos questions à l'assistant ci-dessous.
+            <v-icon color="warning" size="28" class="mb-2">mdi-block-helper</v-icon>
+            <div class="text-caption mb-3" style="max-width: 340px; color: rgba(255,255,255,0.95); line-height: 1.45;">
+              Le créateur de cette vidéo n'autorise pas son intégration sur des applications tierces. Talkiz Video respecte ce choix et ne peut pas analyser cette vidéo.
             </div>
             <v-btn
               :href="youtubeWatchUrl"
@@ -54,7 +51,7 @@
               size="small"
               class="text-none font-weight-bold text-black px-4"
             >
-              <v-icon start color="red-darken-1" size="18">mdi-youtube</v-icon>
+              <v-icon start size="18">mdi-open-in-new</v-icon>
               Regarder sur YouTube
             </v-btn>
           </div>
@@ -63,24 +60,29 @@
 
       <v-card-text v-if="videoTitle" class="pa-3 d-flex align-center justify-space-between ga-2">
         <div class="text-subtitle-2 font-weight-bold text-black d-flex align-center" style="line-height: 1.3; min-width: 0;">
-          <v-icon size="small" color="red-darken-1" class="mr-2 flex-shrink-0">mdi-youtube</v-icon>
+          <v-icon size="small" color="primary" class="mr-2 flex-shrink-0">mdi-play-circle-outline</v-icon>
           <span style="display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
             {{ videoTitle }}
           </span>
         </div>
-        <div v-if="showShareActions" class="d-flex align-center flex-shrink-0">
-          <v-btn
-            icon
-            size="x-small"
-            variant="text"
-            color="grey-darken-1"
-            :title="copied ? 'Lien copié !' : 'Copier le lien de partage'"
-            @click="copyShareLink"
-          >
-            <v-icon size="18" :color="copied ? 'success' : undefined">
-              {{ copied ? 'mdi-check' : 'mdi-link-variant' }}
-            </v-icon>
-          </v-btn>
+        <div class="d-flex align-center flex-shrink-0">
+          <v-tooltip text="Regarder sur YouTube" location="top">
+            <template #activator="{ props: tooltipProps }">
+              <v-btn
+                v-bind="tooltipProps"
+                icon
+                size="x-small"
+                variant="text"
+                color="grey-darken-1"
+                :href="youtubeWatchUrl"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Regarder sur YouTube"
+              >
+                <v-icon size="18">mdi-open-in-new</v-icon>
+              </v-btn>
+            </template>
+          </v-tooltip>
         </div>
       </v-card-text>
     </v-card>
@@ -116,56 +118,110 @@
       </v-btn>
     </v-card>
 
-    <!-- Talkiz Voice Agent Player (LiveBannerPlayer or RealtimeBannerPlayer) -->
-    <div v-else class="w-100 d-flex justify-center" :style="{ maxWidth: playerMaxWidth }">
-      <component
-        :is="playerComponent"
-        :key="project.proj_uid"
-        ref="agentPlayer"
-        :projectConfig="project"
-        :clientUid="project.proj_client_uid || project.client_uid"
-        :projectUid="project.proj_uid"
-        width="100%"
-        :height="project.proj_link_height || '150px'"
-        style="width: 100%; max-width: 100%;"
-        :bgColor="project.proj_link_display_bg_color || 'white'"
-        :bgCustom="project.proj_link_display_bg_custom || '#FFFFFF'"
-        :textColor="project.proj_link_display_text_color || 'black'"
-        :textCustom="project.proj_link_display_text_custom || '#000000'"
-        :borderRadius="project.proj_link_border_radius || '12px'"
-        :invitationText="project.proj_link_invitation_text || 'Ou cliquez ici et je répondrai à vos questions !'"
-        :voiceType="project.proj_oart_voice_type"
-        :voiceSpeed="project.proj_oart_voice_speed"
-        :temperature="project.proj_oart_temperature"
-        :suggestedQuestions="[
-          project.proj_plugin_btn_text_1,
-          project.proj_plugin_btn_text_2,
-          project.proj_plugin_btn_text_3,
-          project.proj_plugin_btn_text_4,
-          project.proj_plugin_btn_text_5
-        ]"
-        :autoStart="false"
-        :hasEmbeddedYoutubePlayer="!!youtubeVideoId && !embedBlocked"
-        @conversation-started="handleConversationStarted"
-        @seek-youtube="seekYoutubeVideo"
-        @close="handleConversationEnded"
-      />
-    </div>
-
-    <!-- Footer copyright -->
+    <!-- Talkiz Voice Agent Player (strictly disabled if YouTube embed is blocked by creator) -->
     <div
-      class="d-flex justify-center align-center mt-3 w-100"
-      :style="{ maxWidth: playerMaxWidth, padding: '0 4px' }"
+      v-else-if="!embedBlocked"
+      class="w-100 d-flex flex-column align-center"
+      :style="{ maxWidth: playerMaxWidth }"
     >
-      <div style="font-size: 11px; color: #94a3b8;">
-        &copy; 2026 Talkiz.ai — 1 crédit = 1 minute
+      <div class="w-100" @click.capture="onPlayerAreaClick">
+        <component
+          :is="playerComponent"
+          :key="project.proj_uid"
+          ref="agentPlayer"
+          :projectConfig="project"
+          :clientUid="project.proj_client_uid || project.client_uid"
+          :projectUid="project.proj_uid"
+          width="100%"
+          :height="project.proj_link_height || '150px'"
+          style="width: 100%; max-width: 100%;"
+          :bgColor="project.proj_link_display_bg_color || 'white'"
+          :bgCustom="project.proj_link_display_bg_custom || '#FFFFFF'"
+          :textColor="project.proj_link_display_text_color || 'black'"
+          :textCustom="project.proj_link_display_text_custom || '#000000'"
+          :borderRadius="project.proj_link_border_radius || '12px'"
+          :invitationText="project.proj_link_invitation_text || 'Ou cliquez ici et je répondrai à vos questions !'"
+          :voiceType="project.proj_oart_voice_type"
+          :voiceSpeed="project.proj_oart_voice_speed"
+          :temperature="project.proj_oart_temperature"
+          :suggestedQuestions="[
+            project.proj_plugin_btn_text_1,
+            project.proj_plugin_btn_text_2,
+            project.proj_plugin_btn_text_3,
+            project.proj_plugin_btn_text_4,
+            project.proj_plugin_btn_text_5
+          ]"
+          :autoStart="false"
+          :hasEmbeddedYoutubePlayer="!!youtubeVideoId && !embedBlocked"
+          @conversation-started="handleConversationStarted"
+          @seek-youtube="seekYoutubeVideo"
+          @close="handleConversationEnded"
+        />
+      </div>
+
+      <!-- Mention AI Act (visible en permanence sous la carte de l'assistant vocal) -->
+      <div
+        class="d-flex align-start ga-2 mt-2 px-2 text-left w-100"
+        style="font-size: 11.5px; color: #64748b; line-height: 1.45;"
+      >
+        <v-icon size="15" color="#64748b" class="mt-0 flex-shrink-0" style="margin-top: 2px;">mdi-information-outline</v-icon>
+        <span>
+          Vous interagissez avec une intelligence artificielle. Les réponses peuvent contenir des inexactitudes : vérifiez toujours les informations importantes dans la vidéo d'origine.
+        </span>
       </div>
     </div>
+
+    <!-- Modale de consentement Microphone (RGPD) avant la 1re activation WebRTC / OpenAI -->
+    <v-dialog v-model="showMicConsentDialog" max-width="440" persistent>
+      <v-card rounded="xl" class="pa-3">
+        <v-card-title class="d-flex align-center ga-2 text-subtitle-1 font-weight-bold pb-1">
+          <v-avatar size="34" color="#eff6ff">
+            <v-icon size="20" color="#2196F3">mdi-microphone-outline</v-icon>
+          </v-avatar>
+          <span>Activation du microphone</span>
+        </v-card-title>
+
+        <v-card-text class="text-body-2 text-grey-darken-2 pt-3 pb-2" style="line-height: 1.55;">
+          Pour répondre à vos questions à l'oral, votre flux vocal est transmis en temps réel à notre prestataire technique <strong>OpenAI</strong> (États-Unis, sans utilisation pour l'entraînement des modèles). Votre voix n'est pas enregistrée sous forme de fichier audio sur nos serveurs.
+          <div class="mt-3">
+            <NuxtLink
+              to="/confidentialite"
+              target="_blank"
+              class="text-caption font-weight-medium"
+              style="color: #2196F3; text-decoration: underline;"
+            >
+              Consulter la Politique de confidentialité
+            </NuxtLink>
+          </div>
+        </v-card-text>
+
+        <v-card-actions class="justify-end ga-2 pt-3">
+          <v-btn
+            variant="text"
+            color="grey-darken-1"
+            class="text-none"
+            @click="cancelMicConsent"
+          >
+            Annuler
+          </v-btn>
+          <v-btn
+            color="#2196F3"
+            variant="flat"
+            rounded="pill"
+            class="text-white text-none font-weight-bold px-5"
+            @click="acceptMicConsent"
+          >
+            <v-icon start size="18">mdi-microphone</v-icon>
+            Autoriser et parler
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import RealtimeBannerPlayer from '../avatar/RealtimeBannerPlayer.vue'
 import LiveBannerPlayer from '../avatar/LiveBannerPlayer.vue'
 import videoService from '../../services/video.service.js'
@@ -179,19 +235,62 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
-  showShareActions: {
-    type: Boolean,
-    default: true,
-  },
 })
 
 const emit = defineEmits(['conversation-ended'])
 
-const config = useRuntimeConfig()
 const agentPlayer = ref(null)
 const youtubeIframe = ref(null)
-const copied = ref(false)
 const embedBlocked = ref(false)
+
+// ── RGPD Microphone Consent Gate ───────────────────────────────────────────
+const showMicConsentDialog = ref(false)
+const micConsentAccepted = ref(false)
+let pendingClickTarget = null
+
+const getConsentStorageKey = () => {
+  const uid = props.project?.proj_client_uid || props.project?.client_uid || ''
+  return uid ? `mic_consent_accepted_${uid}` : 'mic_consent_accepted'
+}
+
+const loadMicConsent = () => {
+  if (typeof localStorage === 'undefined') return
+  const userKey = getConsentStorageKey()
+  micConsentAccepted.value =
+    localStorage.getItem(userKey) === 'true' ||
+    localStorage.getItem('mic_consent_accepted') === 'true'
+}
+
+const onPlayerAreaClick = (event) => {
+  if (micConsentAccepted.value) return
+  event.stopPropagation()
+  event.preventDefault()
+  pendingClickTarget = event.target
+  showMicConsentDialog.value = true
+}
+
+const cancelMicConsent = () => {
+  showMicConsentDialog.value = false
+  pendingClickTarget = null
+}
+
+const acceptMicConsent = async () => {
+  micConsentAccepted.value = true
+  if (typeof localStorage !== 'undefined') {
+    localStorage.setItem('mic_consent_accepted', 'true')
+    localStorage.setItem(getConsentStorageKey(), 'true')
+  }
+  showMicConsentDialog.value = false
+  const targetToReplay = pendingClickTarget
+  pendingClickTarget = null
+
+  await nextTick()
+  if (targetToReplay && typeof targetToReplay.click === 'function' && document.contains(targetToReplay)) {
+    targetToReplay.click()
+  } else if (agentPlayer.value && typeof agentPlayer.value.handleBannerClick === 'function') {
+    agentPlayer.value.handleBannerClick()
+  }
+}
 
 const playerMaxWidth = computed(() => props.project?.proj_link_width || '440px')
 
@@ -214,26 +313,9 @@ const youtubeEmbedUrl = computed(() => {
   return `https://www.youtube.com/embed/${youtubeVideoId.value}?enablejsapi=1&rel=0&modestbranding=1`
 })
 
-const shareUrl = computed(() => {
-  const base = (config.public.SHARE_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://video.talkiz.ai')).replace(/\/$/, '')
-  const slugOrId = props.project?.proj_slug || props.project?.proj_uid || ''
-  return slugOrId ? `${base}/${slugOrId}` : base
-})
-
 const playerComponent = computed(() => {
   return props.project?.model_id === 3 ? LiveBannerPlayer : RealtimeBannerPlayer
 })
-
-const copyShareLink = async () => {
-  if (!shareUrl.value || typeof navigator === 'undefined') return
-  try {
-    await navigator.clipboard.writeText(shareUrl.value)
-    copied.value = true
-    setTimeout(() => { copied.value = false }, 2000)
-  } catch (e) {
-    console.warn('Clipboard copy failed:', e)
-  }
-}
 
 // ── Bidirectional YouTube IFrame <-> Talkiz Player sync ────────────────────
 let isYoutubeCurrentlyPlaying = false
@@ -379,6 +461,7 @@ watch(() => props.project?.proj_uid, () => {
 })
 
 onMounted(() => {
+  loadMicConsent()
   window.addEventListener('message', handleYoutubeMessage)
 })
 

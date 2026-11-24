@@ -8,7 +8,7 @@
     <!-- Header -->
     <div class="d-flex align-center justify-space-between px-4 py-3" style="border-bottom: 1px solid #e2e8f0;">
       <div class="d-flex align-center ga-2">
-        <v-icon color="red-darken-1" size="22">mdi-youtube</v-icon>
+        <v-icon color="primary" size="22">mdi-play-box-multiple-outline</v-icon>
         <span class="text-subtitle-1 font-weight-bold">Mes vidéos</span>
         <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
           {{ videosStore.videos.length }}
@@ -72,11 +72,11 @@
         rounded="lg"
         class="mb-1 video-drawer-item"
         :active="videosStore.activeVideo?.proj_uid === video.proj_uid"
-        active-color="primary"
+        color="primary"
         @click="handleSelect(video)"
       >
         <template #prepend>
-          <v-icon size="18" color="red-darken-1" class="mr-2">mdi-play-box</v-icon>
+          <v-icon size="18" color="primary" class="mr-2">mdi-play-circle-outline</v-icon>
         </template>
 
         <v-list-item-title class="text-body-2 font-weight-medium text-truncate">
@@ -85,18 +85,6 @@
 
         <template #append>
           <div class="d-flex align-center">
-            <v-btn
-              icon
-              size="x-small"
-              variant="text"
-              :color="copiedUid === video.proj_uid ? 'success' : 'grey-darken-1'"
-              :title="copiedUid === video.proj_uid ? 'Lien copié !' : 'Copier le lien de partage'"
-              @click.stop="copyLink(video)"
-            >
-              <v-icon size="16">
-                {{ copiedUid === video.proj_uid ? 'mdi-check' : 'mdi-link-variant' }}
-              </v-icon>
-            </v-btn>
             <v-btn
               icon
               size="x-small"
@@ -139,11 +127,9 @@ import { useAuthStore } from '../../../stores/auth'
 
 const videosStore = useVideosStore()
 const authStore = useAuthStore()
-const config = useRuntimeConfig()
 const route = useRoute()
 
 const searchQuery = ref('')
-const copiedUid = ref('')
 const deleteDialog = ref(false)
 const videoToDelete = ref(null)
 const deleting = ref(false)
@@ -174,21 +160,6 @@ const handleSelect = async (video) => {
   await videosStore.selectVideo(video.proj_uid)
   if (route.path !== '/') {
     navigateTo('/')
-  }
-}
-
-const copyLink = async (video) => {
-  const base = (config.public.SHARE_BASE_URL || (typeof window !== 'undefined' ? window.location.origin : 'https://video.talkiz.ai')).replace(/\/$/, '')
-  const slugOrId = video.proj_slug || video.proj_uid
-  const url = `${base}/${slugOrId}`
-  try {
-    await navigator.clipboard.writeText(url)
-    copiedUid.value = video.proj_uid
-    setTimeout(() => {
-      if (copiedUid.value === video.proj_uid) copiedUid.value = ''
-    }, 2000)
-  } catch (err) {
-    console.warn('Copy failed:', err)
   }
 }
 

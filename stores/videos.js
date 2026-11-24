@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import videoService from '../app/services/video.service.js'
+import { useAuthStore } from './auth'
 
 export const useVideosStore = defineStore('videos', {
     state: () => ({
@@ -26,15 +27,17 @@ export const useVideosStore = defineStore('videos', {
 
         async selectVideo(projUid) {
             if (!projUid) return null
+            const authStore = useAuthStore()
             this.loadingActiveVideo = true
             try {
-                const fullProject = await videoService.getPublicProject(projUid)
-                if (fullProject) {
+                const fullProject = await videoService.getPrivateProject(projUid)
+                if (fullProject && (!authStore.clientUid || fullProject.client_uid === authStore.clientUid)) {
                     this.activeVideo = fullProject
+                    return fullProject
                 }
-                return fullProject
+                return null
             } catch (err) {
-                console.error('[VideosStore] Error loading video project:', err)
+                console.error('[VideosStore] Error loading private video project:', err)
                 return null
             } finally {
                 this.loadingActiveVideo = false
