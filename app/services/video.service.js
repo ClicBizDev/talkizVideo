@@ -31,6 +31,7 @@ async function createProfile({ client_uid, email }) {
  * List all projects for a client, then filter to YouTube video projects only
  */
 async function listVideos(clientUid) {
+    if (!clientUid || clientUid === 'undefined') return []
     const { data } = await apiClient().get('/project/list/', {
         params: { client_uid: clientUid, source: 'youtube' },
     })
@@ -87,12 +88,13 @@ async function getYoutubeTaskStatus(taskId) {
 /**
  * Notify user by email when YouTube processing is complete (non-fatal)
  */
-async function notifyComplete({ projectUid, clientUid, sourceLabel, language = 'fr' }) {
+async function notifyComplete({ projectUid, clientUid, sourceLabel, language = 'fr', elapsedSec = 0 }) {
     const { data } = await apiClient().post('/pdf/notify-complete', {
         projectUid,
         clientUid,
         fileNames: [sourceLabel],
         language,
+        elapsedSec,
     })
     return data
 }

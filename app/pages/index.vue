@@ -318,6 +318,7 @@ const handleAddVideo = async () => {
         clientUid,
         sourceLabel,
         language: lang,
+        elapsedSec: Math.max(1, ytFinalResult?.elapsedSec || elapsedSec.value || 1),
       })
     } catch (emailErr) {
       console.warn('Email notification skipped:', emailErr)

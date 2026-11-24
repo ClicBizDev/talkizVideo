@@ -12,6 +12,9 @@ export default defineNuxtRouteMiddleware(async (to) => {
     }
 
     if (!authStore.isAuthenticated) {
-        await authStore.hydrateFromSession(supabase, session)
+        const ok = await authStore.hydrateFromSession(supabase, session)
+        if (!ok) {
+            return navigateTo('/login')
+        }
     }
 })
