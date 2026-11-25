@@ -4887,11 +4887,30 @@ Transcripts can contain mistakes — use the latest context. Ask for clarificati
         ? `\n2. After searching, always call display_source_urls with the exact timestamped YouTube URL ("https://www.youtube.com/watch?v=${projectYoutubeVideoId.value}&t=<SECONDS>s") corresponding to the moment discussed.`
         : '';
     const ragInstructions = config.value.isYoutubeSector
-      ? `#### KNOWLEDGE BASE SEARCH:\n1. When the user asks a question about the video's content, speakers, or moments, call search_knowledge_base FIRST before answering.${ragUrlStep}\n3. PERMISSION BEFORE INTERNET SEARCH: If the answer is NOT in the video, do NOT call web_search immediately (unless the user explicitly asked you to search the Internet). First tell the user clearly that this information is not mentioned in the video, and if the question relates to a topic, person, country, or place from the video, ASK if they would like you to search on the Internet ("Souhaitez-vous que je fasse une recherche sur internet ?"). Call web_search ONLY AFTER the user confirms ("oui", "vas-y", etc.), and then call display_source_urls with the 1 to 3 most relevant web source URLs and readable titles returned by web_search.\n4. CONVERSATION FLOW: After providing your answer, always end with a short, relevant follow-up question to keep the discussion going.`
+      ? `#### KNOWLEDGE BASE SEARCH:\n1. When the user asks a question about the video's content, speakers, or moments, call search_knowledge_base FIRST before answering.${ragUrlStep}\n3. CONVERSATION FLOW: After providing your answer, always end with a short, relevant follow-up question to keep the discussion going.`
       : `#### KNOWLEDGE BASE SEARCH:\n1. When the user asks a question about ${companyName}, its products, services, or team, call search_knowledge_base FIRST before answering.${ragUrlStep}\n3. Do not answer from memory — always search first.\n4. CONVERSATION FLOW: After providing your answer based on search results, you MUST always end with a relevant follow-up question to keep the conversation going.`;
     backendPrompt = backendPrompt.replace(/\*\*\*RAG_INSTRUCTIONS\*\*\*/g, ragInstructions);
   } else {
     backendPrompt = backendPrompt.replace(/\*\*\*RAG_INSTRUCTIONS\*\*\*/g, '');
+  }
+
+  // --- STRICT YOUTUBE GROUNDING, TIMESTAMPS & WEB SEARCH PERMISSION (applies in BOTH inline KB and RAG modes) ---
+  if (config.value.isYoutubeSector) {
+    backendPrompt += `\n\n#### STRICT VIDEO GROUNDING, TIMESTAMPS & WEB SEARCH PERMISSION (MANDATORY — ZERO EXCEPTIONS):
+1. VIDEO-ONLY FIRST (NO HALLUCINATION / NO GENERAL KNOWLEDGE):
+   - Answer questions about what happens in the video STRICTLY from the video notes/transcript in <knowledge_base>${useRag.value ? ' or search_knowledge_base results' : ''}.
+   - NEVER fill in missing visual or technical details from your own general knowledge or memory (for example, never guess how a trick, step, or demonstration works if it is not explicitly described in the video notes).
+2. CHRONOLOGICAL SCAN & DISTINCT TIMESTAMPS:
+   - Before answering, scan the ENTIRE video timeline chronologically — do NOT stop at the first matching keyword (e.g. if a video shows multiple tricks/sections with the same object, distinguish each section carefully).
+   - When calling display_source_urls, ALWAYS use the exact timestamp of the specific section that answers the user's current question. NEVER reuse a previous section's timestamp for a different moment.
+   - If the user says the moment is later in the video, re-read the later timestamps carefully; if that moment is not clearly documented in the video notes, admit it honestly instead of guessing.
+3. MANDATORY PERMISSION BEFORE ANY INTERNET SEARCH ('web_search'):
+   - You are STRICTLY FORBIDDEN from calling 'web_search' without prior explicit user permission (unless the user already explicitly asked you to search the Internet in their message).
+   - If the requested information is NOT in the video (or not detailed enough in the video notes), you MUST:
+     a) Clearly state that this information is not present / not detailed in the video.
+     b) Ask explicitly: "Souhaitez-vous que je fasse une recherche sur Internet ?" (in the user's language).
+     c) STOP and wait. Do NOT call 'web_search' in that turn and do NOT answer from general knowledge.
+   - Call 'web_search' ONLY in a subsequent turn AFTER the user explicitly confirms ("oui", "yes", "vas-y", "d'accord", etc.), and then call display_source_urls with the 1 to 3 most relevant web source URLs returned by web_search.`;
   }
 
   // --- CALENDAR BOOKING ---
