@@ -52,19 +52,29 @@ export function apiClient() {
 
     instance.interceptors.response.use(
         (response) => response,
-        (error) => {
-            const status = error.response?.status
-            const errCode = error.response?.data?.code
-            // Do not treat business 403 errors (e.g. EMBED_DISABLED) as expired sessions
-            if (status === 401 || (status === 403 && errCode !== 'EMBED_DISABLED')) {
-                console.warn(`[API] Session expirée (${status} sur ${error.config?.url})`)
-                setAccessToken('')
-                if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-                    window.location.href = '/login'
-                }
-            }
-            return Promise.reject(error)
-        }
+            async (error) => {
+                const status = error.response?.status
+                const errCode = error.response?.data?.code
+                    const reqUrl = error.config?.url || ''
+                    const isPublicEndpoint = reqUrl.includes('/project/recent-youtube') || reqUrl.includes('/project/public')
+                    // Do not treat business 403 errors (e.g. EMBED_DISABLED) or public endpoints as expired sessions
+                    if (!isPublicEndpoint && (status === 401 || (status === 403 && errCode !== 'EMBED_DISABLED'))) {
+                        console.warn(`[API] Session expirée (${status} sur ${reqUrl})`)
+                        setAccessToken('')
+                            if (typeof window !== 'undefined') {
+                                try {
+                                    const supabase = useSupabaseClient()
+                                    await supabase.auth.signOut({ scope: 'local' })
+                                } catch {
+                                    // Ignore signOut errors during cleanup
+                                }
+                                if (window.location.pathname !== '/login') {
+                                    window.location.href = '/login'
+                                }
+                            }
+                        }
+                        return Promise.reject(error)
+                    }
     )
 
     return instance

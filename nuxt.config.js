@@ -9,7 +9,7 @@ export default defineNuxtConfig({
 
     app: {
         head: {
-            title: 'Talkiz Video',
+            title: 'Talkiz.yt — Voice Chat with YouTube Videos',
             meta: [
                 { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1' },
                 { name: 'description', content: 'Talk to any YouTube video with Talkiz Video AI' }

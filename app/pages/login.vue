@@ -9,11 +9,8 @@
           style="height: 38px; width: 38px; border-radius: 50%;"
         />
         <span style="font-size: 1.5rem; font-weight: 700; color: #3b82f6; letter-spacing: -0.025em;">
-          Talkiz<span style="color: #ffffff;">.ai</span>
+          Talkiz<span style="color: #FF0000;">.yt</span>
         </span>
-        <v-chip size="x-small" color="red-darken-1" variant="flat" class="font-weight-bold">
-          Video
-        </v-chip>
       </div>
 
       <!-- Heading (OpusClip-inspired layout) -->
@@ -153,6 +150,13 @@ const successMsg = ref('')
 onMounted(async () => {
   const { data } = await supabase.auth.getSession()
   if (data?.session) {
+    // Verify the token is still valid server-side before auto-redirecting (prevents login <-> / loops)
+    const { data: userData, error: userError } = await supabase.auth.getUser()
+    if (userError || !userData?.user) {
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+      authStore.clearUser()
+      return
+    }
     await authStore.hydrateFromSession(supabase, data.session)
     navigateTo('/')
   }

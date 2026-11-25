@@ -219,10 +219,20 @@ const goToBilling = () => {
 
 const handleLogout = async () => {
   dialogModel.value = false
-  await supabase.auth.signOut()
+  try {
+    await supabase.auth.signOut()
+  } catch {
+    // Fallback to local sign-out if network/token fails
+  }
+  try {
+    await supabase.auth.signOut({ scope: 'local' })
+  } catch {
+    // Ignore
+  }
   authStore.clearUser()
+  videosStore.videos = []
   videosStore.clearActiveVideo()
-  navigateTo('/login')
+  navigateTo('/')
 }
 
 const openDeleteConfirm = () => {

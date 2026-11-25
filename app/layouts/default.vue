@@ -31,23 +31,38 @@
             </v-chip>
           </v-btn>
 
-          <NuxtLink to="/" class="d-flex align-center text-decoration-none ml-1" style="gap: 0.4rem; min-width: 0;">
+          <NuxtLink to="/" class="d-flex align-center text-decoration-none ml-1" style="gap: 0.45rem; min-width: 0;">
             <img
               src="/logo-talkiz-icon.svg?v=4"
-              alt="Talkiz"
+              alt="Talkiz.yt"
               class="brand-icon flex-shrink-0"
             />
-            <span class="brand-wordmark d-none d-sm-inline">
-              Talkiz<span style="color: #0f172a;">.ai</span>
+            <span class="brand-wordmark" :class="{ 'd-none d-sm-inline': authStore.isAuthenticated }">
+              Talkiz<span style="color: #FF0000;">.yt</span>
             </span>
-            <v-chip size="x-small" color="red-darken-1" variant="tonal" class="font-weight-bold d-none d-md-inline-flex">
-              Video
-            </v-chip>
           </NuxtLink>
         </div>
 
-        <!-- Right: Credits counter + Recharge + Account icon -->
-        <div v-if="authStore.isAuthenticated" class="d-flex align-center ga-1 ga-sm-2 flex-shrink-0">
+        <!-- Right: Sign in with Google (when logged out) -->
+        <div v-if="!authStore.isAuthenticated" class="d-flex align-center flex-shrink-0">
+          <button
+            type="button"
+            class="header-google-btn"
+            :disabled="signingInGoogle"
+            @click="signInWithGoogleHeader"
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" class="mr-2 flex-shrink-0">
+              <path fill="#EA4335" d="M12 5.04c1.94 0 3.51.68 4.75 1.81l3.51-3.51C18.14 1.38 15.34 0 12 0 7.31 0 3.25 2.69 1.28 6.6l4.09 3.17C6.34 6.91 8.94 5.04 12 5.04z"/>
+              <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58l3.87 3c2.26-2.09 3.55-5.17 3.55-8.82z"/>
+              <path fill="#FBBC05" d="M5.37 14.23a7.17 7.17 0 0 1 0-4.46L1.28 6.6a11.98 11.98 0 0 0 0 10.8l4.09-3.17z"/>
+              <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.87-3c-1.08.72-2.45 1.16-4.06 1.16-3.06 0-5.66-1.87-6.63-4.52l-4.09 3.17C3.25 21.31 7.31 24 12 24z"/>
+            </svg>
+            <span>{{ t('nav.signInGoogle') }}</span>
+          </button>
+        </div>
+
+        <!-- Right: Credits counter + Recharge + Account icon (when logged in) -->
+        <div v-else class="d-flex align-center ga-1 ga-sm-2 flex-shrink-0">
           <!-- Credit counter (1 credit = 1 minute) -->
           <div class="d-flex align-center rounded-pill px-2 py-1" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
             <v-tooltip :text="t('nav.creditsTooltip')" location="bottom">
@@ -147,6 +162,26 @@ const videosStore = useVideosStore()
 const { t } = useI18n()
 
 const showAccountDialog = ref(false)
+const signingInGoogle = ref(false)
+
+const signInWithGoogleHeader = async () => {
+  if (signingInGoogle.value) return
+  signingInGoogle.value = true
+  try {
+    const redirectTo = `${window.location.origin}/auth/callback`
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo },
+    })
+    if (error) {
+      signingInGoogle.value = false
+      navigateTo('/login')
+    }
+  } catch {
+    signingInGoogle.value = false
+    navigateTo('/login')
+  }
+}
 
 const creditIconColor = computed(() => {
   const b = Number(authStore.creditBudget ?? 1)
@@ -181,9 +216,9 @@ onMounted(() => {
       authStore.clearUser()
       videosStore.clearActiveVideo()
       const route = useRoute()
-      const publicPaths = ['/login', '/cgu', '/confidentialite', '/mentions-legales']
+      const publicPaths = ['/', '/login', '/cgu', '/confidentialite', '/mentions-legales']
       if (!publicPaths.includes(route.path) && !route.path.startsWith('/auth')) {
-        navigateTo('/login')
+        navigateTo('/')
       }
     } else if (session?.access_token) {
       setAccessToken(session.access_token)
@@ -227,6 +262,34 @@ onUnmounted(() => {
 .legal-link:hover {
   color: #2196F3;
   text-decoration: underline;
+}
+
+.header-google-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.header-google-btn:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+.header-google-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 @media (min-width: 600px) {

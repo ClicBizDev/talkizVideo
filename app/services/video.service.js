@@ -41,6 +41,22 @@ async function listVideos(clientUid) {
 }
 
 /**
+ * Fetch the 10 most recent public YouTube videos analyzed on Talkiz.yt (public landing page)
+ */
+async function getRecentVideos(limit = 10) {
+    try {
+        const { data } = await apiClient().get('/project/recent-youtube', {
+            params: { limit },
+        })
+        const list = data?.results?.result || data?.results || []
+        return Array.isArray(list) ? list : []
+    } catch (err) {
+        console.warn('[video.service] getRecentVideos warning:', err?.message || err)
+        return []
+    }
+}
+
+/**
  * Load full project configuration (strictly private — verified via Supabase Bearer JWT)
  */
 async function getPrivateProject(projUid) {
@@ -131,6 +147,7 @@ export default {
     isValidYoutubeUrl,
     createProfile,
     listVideos,
+    getRecentVideos,
     getPrivateProject,
     createYoutubeProject,
     startYoutubeAnalysis,

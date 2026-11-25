@@ -12,14 +12,15 @@ export default {
 
   nav: {
     myVideos: 'My Videos',
-    creditsTooltip: '1 credit = 1 minute of voice conversation',
-    refreshCredits: 'Refresh credits',
+    creditsTooltip: 'Available conversation time',
+    refreshCredits: 'Refresh balance',
     recharge: 'Top up',
     myAccount: 'My Account',
+    signInGoogle: 'Sign in with Google',
   },
 
   footer: {
-    copyright: '© 2026 Talkiz.ai — 1 credit = 1 minute',
+    copyright: '© 2026 Talkiz.ai',
     terms: 'Terms',
     privacy: 'Privacy',
     legal: 'Legal Notice',
@@ -36,6 +37,8 @@ export default {
     welcomeTitle: 'Have a voice chat with a YouTube video',
     welcomeSubtitleBefore: 'Paste the link of a public YouTube video above and click',
     welcomeSubtitleAfter: 'Talkiz generates your interactive voice assistant to answer all your questions.',
+    freeToStart: 'Free to start. No credit card required.',
+    recentVideosTitle: 'Recently explored videos',
     viewMyVideos: 'View my {{count}} video',
     viewMyVideosPlural: 'View my {{count}} videos',
     cancelAnalysis: 'Cancel',
@@ -100,8 +103,8 @@ export default {
     title: 'My Account',
     defaultUser: 'Talkiz User',
     signInWith: '{{provider}} sign-in',
-    remainingCredits: 'Remaining credits',
-    creditRate: '1 credit = 1 minute of conversation',
+    remainingCredits: 'Available conversation time',
+    creditRate: 'Remaining voice minutes',
     currentPlan: 'Current plan',
     analyzedVideos: 'Analyzed videos',
     topUpButton: 'Top up credits / Plans',
