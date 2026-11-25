@@ -125,7 +125,7 @@
     <!-- Account Dialog -->
     <AccountDialog v-if="authStore.isAuthenticated" v-model="showAccountDialog" />
 
-    <v-main class="d-flex flex-column" style="background: #E6DAF5; min-height: 100vh;">
+    <v-main class="d-flex flex-column" style="background: #DCEBFE; min-height: 100vh;">
       <div class="flex-grow-1">
         <slot />
       </div>
@@ -242,7 +242,7 @@ onUnmounted(() => {
 .brand-icon {
   height: 34px;
   width: 34px;
-  background-color: #FF0000;
+  background-color: #E51919;
   border-radius: 0.65rem;
   padding: 4px;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.06);
@@ -261,7 +261,7 @@ onUnmounted(() => {
 }
 
 .brand-tld {
-  color: #DC2626;
+  color: #E51919;
 }
 
 .legal-footer {

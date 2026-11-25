@@ -172,38 +172,28 @@ export default {
     choosePlan: 'Choose {{name}}',
     stripeNotConfigured:
       'The Stripe link for the "{{name}}" plan ({{credits}} credits) is not yet configured in .env (NUXT_PUBLIC_{{key}}).',
-    securityFooter: '100% secure payment via Stripe • Credits are added automatically to your account.',
+    securityFooter: '100% secure payment via Stripe • All prices include 20% VAT • Minutes are added automatically to your account.',
+    freePlanBanner: 'Free Plan: €0 — 10 voice minutes included at sign-up, no credit card required.',
+    perMonth: '/ month (incl. VAT)',
+    oneTimeInclVat: 'one-time (incl. VAT)',
+    subscribePlan: 'Subscribe to {name}',
+    buyPack: 'Buy {name}',
     plans: {
-      starter: {
-        name: 'Starter',
-        tagline: 'Ideal to discover and analyze your first videos',
-        features: [
-          '30 credits = 30 voice minutes',
-          'YouTube audio + visual analysis',
-          '100% private video library',
-          'Full history of your videos',
-        ],
-      },
       standard: {
         name: 'Standard',
-        tagline: 'For creators, students, and daily research',
-        features: [
-          '100 credits = 100 voice minutes',
-          'Long videos supported',
-          '100% private video library',
-          'Priority video analysis',
-        ],
+        tagline: 'Monthly subscription for regular YouTube learning & research',
+        durationLine: '1 hour (60 min) / month',
       },
-      pro: {
-        name: 'Pro',
-        tagline: 'For intensive and professional use',
-        features: [
-          '350 credits = 350 voice minutes',
-          'Unlimited videos in your library',
-          'Private and secure access',
-          'Priority support',
-        ],
+        pack5h: {
+          name: 'Pack +5h',
+          tagline: 'Extra conversation time — never expires',
+          durationLine: '5 hours (300 min) top-up',
+        },
+        pack10h: {
+          name: 'Pack +10h',
+          tagline: 'Best value top-up for heavy users & teams',
+          durationLine: '10 hours (600 min) top-up',
+        },
       },
     },
-  },
-}
+  }

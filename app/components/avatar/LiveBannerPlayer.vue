@@ -1484,14 +1484,8 @@ const effectiveAdminLanguage = computed(() => {
 });
 
 const useTerraBackend = computed(() => {
-  const rules = (props.projectConfig?.project_rules || []).filter(r => r && r.p_rule_active !== false);
-  if (props.projectConfig?.proj_premium) return true;
-  if (props.projectConfig?.proj_booking_url) return true;
-  if (rules.length > 4) return true;
-  return rules.some(r => {
-    const zone = r.set_rules_cat?.rules_cat_prompt_zone || '';
-    return zone === 'COMMERCIAL_MODE' || zone === 'CALENDAR_BOOKING' || zone === 'MCP_TOOL_SERVER' || !!r.set_rules_cat?.rules_cat_provider;
-  });
+  // Talkiz.yt always uses the fast & cost-efficient gpt-5.6-luna backend
+  return false;
 });
 
 const selectedBackendModel = computed(() => {

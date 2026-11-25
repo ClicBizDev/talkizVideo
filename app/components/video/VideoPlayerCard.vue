@@ -224,6 +224,7 @@
 import { ref, computed, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import RealtimeBannerPlayer from '../avatar/RealtimeBannerPlayer.vue'
 import LiveBannerPlayer from '../avatar/LiveBannerPlayer.vue'
+import GeminiLiveBannerPlayer from '../avatar/GeminiLiveBannerPlayer.vue'
 import videoService from '../../services/video.service.js'
 
 const props = defineProps({
@@ -319,7 +320,9 @@ const youtubeEmbedUrl = computed(() => {
 })
 
 const playerComponent = computed(() => {
-  return props.project?.model_id === 3 ? LiveBannerPlayer : RealtimeBannerPlayer
+  if (props.project?.model_id === 4) return GeminiLiveBannerPlayer
+  if (props.project?.model_id === 3) return LiveBannerPlayer
+  return RealtimeBannerPlayer
 })
 
 // ── Bidirectional YouTube IFrame <-> Talkiz Player sync ────────────────────

@@ -18,13 +18,17 @@
     </div>
 
     <!-- Header -->
-    <div class="text-center mb-6 mb-sm-8" style="max-width: 600px;">
+    <div class="text-center mb-5 mb-sm-6" style="max-width: 640px;">
       <h1 class="text-h5 text-sm-h4 font-weight-bold mb-2" style="color: #0f172a;">
         {{ t('billing.title') }}
       </h1>
-      <p class="text-body-2 text-sm-body-1 text-grey-darken-1">
+      <p class="text-body-2 text-sm-body-1 text-grey-darken-2 mb-4">
         <strong>{{ t('billing.subtitleStrong') }}</strong>{{ t('billing.subtitleAfter') }}
       </p>
+      <v-chip color="white" variant="flat" class="px-4 py-2 text-caption font-weight-medium" style="border: 1px solid #cbd5e1; color: #334155;">
+        <v-icon start size="16" color="success">mdi-gift-outline</v-icon>
+        {{ t('billing.freePlanBanner') }}
+      </v-chip>
     </div>
 
     <!-- Info alert if Stripe link not yet configured -->
@@ -48,7 +52,8 @@
           :elevation="plan.popular ? 6 : 1"
           :style="{
             border: plan.popular ? '2px solid #2196F3' : '1px solid #e2e8f0',
-            position: 'relative'
+            position: 'relative',
+            background: '#ffffff'
           }"
         >
           <v-chip
@@ -67,13 +72,13 @@
             {{ plan.tagline }}
           </div>
 
-          <div class="d-flex align-baseline mb-1">
+          <div class="d-flex align-baseline mb-1 flex-wrap">
             <span class="text-h3 font-weight-bold" style="color: #0f172a;">{{ plan.price }}</span>
-            <span class="text-body-2 text-grey-darken-1 ml-1">{{ t('billing.oneTime') }}</span>
+            <span class="text-caption text-grey-darken-1 ml-2">{{ plan.billingPeriod }}</span>
           </div>
 
           <div class="text-subtitle-2 font-weight-bold mb-5" style="color: #2196F3;">
-            {{ t('billing.creditsLine', { credits: plan.credits }) }}
+            {{ plan.durationLine }}
           </div>
 
           <v-divider class="mb-4" />
@@ -95,7 +100,7 @@
             @click="startStripeCheckout(plan)"
           >
             <v-icon start size="18">mdi-lock-outline</v-icon>
-            {{ t('billing.choosePlan', { name: plan.name }) }}
+            {{ plan.ctaLabel }}
           </v-btn>
         </v-card>
       </v-col>
@@ -123,47 +128,56 @@ const stripeNotice = ref('')
 
 const plans = computed(() => [
   {
-    id: 'starter',
-    name: t('billing.plans.starter.name'),
-    tagline: t('billing.plans.starter.tagline'),
-    price: '€9',
-    credits: 30,
-    popular: false,
-    stripeLinkKey: 'STRIPE_LINK_STARTER',
-    features: [
-      '30 credits = 30 voice minutes',
-      'YouTube audio + visual analysis',
-      '100% private video library',
-      'Full history of your videos',
-    ],
-  },
-  {
     id: 'standard',
     name: t('billing.plans.standard.name'),
     tagline: t('billing.plans.standard.tagline'),
-    price: '€19',
-    credits: 100,
+    price: '€9',
+    billingPeriod: t('billing.perMonth'),
+    durationLine: t('billing.plans.standard.durationLine'),
+    credits: 60,
     popular: true,
     stripeLinkKey: 'STRIPE_LINK_STANDARD',
+    ctaLabel: t('billing.subscribePlan', { name: t('billing.plans.standard.name') }),
     features: [
-      '100 credits = 100 voice minutes',
-      'Long videos supported',
+      '60 minutes of voice chat every month',
+      'YouTube audio + visual analysis',
       '100% private video library',
-      'Priority video analysis',
+      'Cancel anytime in one click',
     ],
   },
   {
-    id: 'pro',
-    name: t('billing.plans.pro.name'),
-    tagline: t('billing.plans.pro.tagline'),
-    price: '€49',
-    credits: 350,
+    id: 'pack5h',
+    name: t('billing.plans.pack5h.name'),
+    tagline: t('billing.plans.pack5h.tagline'),
+    price: '€39',
+    billingPeriod: t('billing.oneTimeInclVat'),
+    durationLine: t('billing.plans.pack5h.durationLine'),
+    credits: 300,
     popular: false,
-    stripeLinkKey: 'STRIPE_LINK_PRO',
+    stripeLinkKey: 'STRIPE_LINK_PACK_5H',
+    ctaLabel: t('billing.buyPack', { name: t('billing.plans.pack5h.name') }),
     features: [
-      '350 credits = 350 voice minutes',
-      'Unlimited videos in your library',
-      'Private and secure access',
+      '5 hours (300 min) of voice conversation',
+      'Credits never expire',
+      'Long YouTube videos supported',
+      '100% private video library',
+    ],
+  },
+  {
+    id: 'pack10h',
+    name: t('billing.plans.pack10h.name'),
+    tagline: t('billing.plans.pack10h.tagline'),
+    price: '€69',
+    billingPeriod: t('billing.oneTimeInclVat'),
+    durationLine: t('billing.plans.pack10h.durationLine'),
+    credits: 600,
+    popular: false,
+    stripeLinkKey: 'STRIPE_LINK_PACK_10H',
+    ctaLabel: t('billing.buyPack', { name: t('billing.plans.pack10h.name') }),
+    features: [
+      '10 hours (600 min) of voice conversation',
+      'Best per-hour rate (€6.90 / hour)',
+      'Credits never expire',
       'Priority support',
     ],
   },

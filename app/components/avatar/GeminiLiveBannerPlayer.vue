@@ -1,0 +1,836 @@
+<template>
+  <div
+    class="gemini-live-banner-player"
+    :style="bannerStyle"
+    @click="handleBannerClick"
+  >
+    <!-- Top Right Controls (Visible during conversation) -->
+    <div
+      v-if="hasSessionStarted"
+      style="position: absolute; top: 6px; right: 6px; display: flex; gap: 8px; z-index: 20;"
+    >
+      <!-- Play / Pause Button -->
+      <button
+        @click.stop="togglePause"
+        style="color: white; background-color: rgba(0,0,0,0.6); border-radius: 50%; width: 36px; height: 36px; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: background-color 0.2s;"
+        :title="conversationEnded ? 'New question' : (isPaused ? 'Resume' : 'Pause')"
+      >
+        <svg v-if="isPaused || conversationEnded" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" style="margin-left: 2px;">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <svg v-else xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+        </svg>
+      </button>
+
+      <!-- Close / Reset Button -->
+      <button
+        @click.stop="abortConversation"
+        style="color: white; background-color: rgba(0,0,0,0.6); border-radius: 50%; width: 36px; height: 36px; border: none; cursor: pointer; font-size: 1.05rem; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.3); transition: background-color 0.2s;"
+        title="Stop and reset"
+      >
+        ✖
+      </button>
+    </div>
+
+    <div class="banner-top-section" :style="topSectionStyle">
+      <!-- Left Zone: Suggested Questions & Invitation -->
+      <div class="banner-content" :style="contentStyle">
+        <div v-if="bannerState === 'initial'" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
+          <div v-if="activeSuggestedQuestions.length > 0" class="suggested-questions">
+            <button
+              v-for="(q, idx) in activeSuggestedQuestions"
+              :key="idx"
+              class="suggested-question-btn"
+              :style="suggestedQuestionBtnStyle"
+              @click.stop="handleSuggestedQuestion(q)"
+            >
+              <svg class="btn-sparkle-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M10 4.5C10.6 9.3 13.7 12.4 18.5 13C13.7 13.6 10.6 16.7 10 21.5C9.4 16.7 6.3 13.6 1.5 13C6.3 12.4 9.4 9.3 10 4.5Z" />
+                <path d="M19 1.7C19.3 3.9 20.6 5.2 22.8 5.5C20.6 5.8 19.3 7.1 19 9.3C18.7 7.1 17.4 5.8 15.2 5.5C17.4 5.2 18.7 3.9 19 1.7Z" />
+              </svg>
+              <span>{{ q }}</span>
+            </button>
+          </div>
+
+          <button
+            v-if="invitationText"
+            class="invitation-text-btn"
+            :style="suggestedQuestionBtnStyle"
+            @click.stop="handleBannerClick()"
+          >
+            <svg class="btn-sparkle-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M10 4.5C10.6 9.3 13.7 12.4 18.5 13C13.7 13.6 10.6 16.7 10 21.5C9.4 16.7 6.3 13.6 1.5 13C6.3 12.4 9.4 9.3 10 4.5Z" />
+              <path d="M19 1.7C19.3 3.9 20.6 5.2 22.8 5.5C20.6 5.8 19.3 7.1 19 9.3C18.7 7.1 17.4 5.8 15.2 5.5C17.4 5.2 18.7 3.9 19 1.7Z" />
+            </svg>
+            <span v-html="invitationText"></span>
+          </button>
+        </div>
+
+        <div v-else-if="bannerState === 'connecting'" class="connecting-display">
+          <div class="connecting-spinner" :style="{ borderTopColor: effectiveTextColor }"></div>
+        </div>
+
+        <div v-else-if="bannerState === 'conversation' && errorMessage" class="text-caption" style="color: #dc2626; padding: 6px 8px;">
+          {{ errorMessage }}
+        </div>
+      </div>
+
+      <!-- Right Zone: Animated Mic Avatar -->
+      <div
+        class="banner-avatar"
+        :style="{
+          order: (bannerState === 'conversation' || (bannerState === 'initial' && activeSuggestedQuestions.length > 0)) ? 1 : 2,
+        }"
+      >
+        <div class="avatar-wrapper" style="width: 82px; height: 82px; position: relative;">
+          <AiMicAnimation
+            :isPulsing="bannerState === 'initial'"
+            :isListening="!isPaused && !isMuted && bannerState === 'conversation' && speakerState === 'listening'"
+            :isUserSpeaking="isUserSpeaking && !isPaused && !isMuted"
+            :userAudioLevel="userAudioLevel"
+            :isThinking="speakerState === 'thinking' && !isPaused"
+            :agentIsSpeaking="speakerState === 'speaking' && !isPaused"
+            :agentAudioLevel="agentAudioLevel"
+            :colorText="effectiveTextColor"
+            :colorBg="effectiveBgColor"
+          />
+        </div>
+      </div>
+    </div>
+
+    <div v-if="errorMessage && bannerState === 'initial'" class="text-caption mt-2 text-center" style="color: #dc2626;">
+      {{ errorMessage }}
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onBeforeUnmount } from 'vue'
+import AiMicAnimation from '../AiMicAnimation.vue'
+import { apiClient } from '../../services/api.js'
+
+const props = defineProps({
+  projectConfig: { type: Object, default: null },
+  clientUid: { type: String, default: '' },
+  projectUid: { type: String, default: '' },
+  width: { type: String, default: '100%' },
+  height: { type: String, default: '150px' },
+  bgColor: { type: String, default: 'white' },
+  bgCustom: { type: String, default: '#FFFFFF' },
+  textColor: { type: String, default: 'black' },
+  textCustom: { type: String, default: '#000000' },
+  borderRadius: { type: String, default: '12px' },
+  invitationText: { type: String, default: 'Ask a question about this video' },
+  voiceType: { type: String, default: 'Aoede' },
+  voiceSpeed: { type: Number, default: 1.0 },
+  temperature: { type: Number, default: 0.7 },
+  suggestedQuestions: { type: Array, default: () => [] },
+  autoStart: { type: Boolean, default: false },
+  hasEmbeddedYoutubePlayer: { type: Boolean, default: false },
+})
+
+const emit = defineEmits(['conversation-started', 'seek-youtube', 'close'])
+
+const bannerState = ref('initial') // 'initial' | 'connecting' | 'conversation' | 'ended'
+const speakerState = ref('idle') // 'idle' | 'listening' | 'thinking' | 'speaking'
+const isPaused = ref(false)
+const isMuted = ref(false)
+const isUserSpeaking = ref(false)
+const userAudioLevel = ref(0)
+const agentAudioLevel = ref(0)
+const conversationEnded = ref(false)
+const hasSessionStarted = ref(false)
+const errorMessage = ref('')
+
+const activeSuggestedQuestions = computed(() =>
+  (props.suggestedQuestions || []).filter((q) => typeof q === 'string' && q.trim().length > 0)
+)
+
+const effectiveBgColor = computed(() => {
+  if (props.bgColor === 'custom') return props.bgCustom || '#FFFFFF'
+  if (props.bgColor === 'black') return '#111827'
+  return '#FFFFFF'
+})
+
+const effectiveTextColor = computed(() => {
+  if (props.textColor === 'custom') return props.textCustom || '#000000'
+  if (props.textColor === 'white') return '#FFFFFF'
+  return '#0f172a'
+})
+
+const bannerStyle = computed(() => ({
+  width: props.width,
+  minHeight: props.height,
+  backgroundColor: effectiveBgColor.value,
+  color: effectiveTextColor.value,
+  borderRadius: props.borderRadius,
+  border: '1px solid #e2e8f0',
+  boxShadow: '0 4px 14px rgba(15, 23, 42, 0.08)',
+  padding: '14px 16px',
+  position: 'relative',
+  cursor: bannerState.value === 'initial' ? 'pointer' : 'default',
+  boxSizing: 'border-box',
+}))
+
+const topSectionStyle = computed(() => ({
+  display: 'flex',
+  flexDirection: (bannerState.value === 'conversation' || activeSuggestedQuestions.value.length > 0) ? 'column' : 'row',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '12px',
+  width: '100%',
+}))
+
+const contentStyle = computed(() => ({
+  width: (bannerState.value === 'conversation' || activeSuggestedQuestions.value.length > 0) ? '100%' : 'auto',
+  order: (bannerState.value === 'conversation' || activeSuggestedQuestions.value.length > 0) ? 2 : 1,
+}))
+
+const suggestedQuestionBtnStyle = computed(() => ({
+  color: effectiveTextColor.value,
+  borderColor: effectiveTextColor.value === '#FFFFFF' ? 'rgba(255,255,255,0.22)' : 'rgba(15,23,42,0.14)',
+  backgroundColor: effectiveTextColor.value === '#FFFFFF' ? 'rgba(255,255,255,0.08)' : 'rgba(15,23,42,0.03)',
+}))
+
+// ── Gemini Live WebSocket & Audio State ────────────────────────────────────
+const GEMINI_VOICES = ['Aoede', 'Charon', 'Fenrir', 'Kore', 'Puck', 'Leda', 'Orus', 'Zephyr']
+const resolveGeminiVoice = (v) => {
+  if (v && GEMINI_VOICES.includes(v)) return v
+  return 'Aoede'
+}
+
+let ws = null
+let captureContext = null
+let captureStream = null
+let captureProcessor = null
+let captureSource = null
+let playbackContext = null
+let nextPlaybackTime = 0
+let activePlaybackSources = []
+let sessionStartTimeMs = 0
+let pausedTotalMs = 0
+let pauseStartedAtMs = 0
+let transcriptEntries = []
+let currentUserTranscript = ''
+let currentAiTranscript = ''
+let pendingInitialQuestion = null
+let isExternalMediaPlaying = false
+let hasSavedConversation = false
+
+const usageTotals = {
+  provider: 'gemini-live',
+  input_text_tokens: 0,
+  output_text_tokens: 0,
+  input_audio_tokens: 0,
+  output_audio_tokens: 0,
+}
+
+const useRag = computed(() => {
+  const tokenCount = props.projectConfig?.proj_kb_content_tokens || 0
+  const rawKbLen = (props.projectConfig?.proj_kb_content || '').length
+  return props.projectConfig?.proj_use_rag === true || tokenCount > 24000 || rawKbLen > 96000
+})
+
+const buildSystemInstruction = () => {
+  const title = props.projectConfig?.proj_youtube_title || props.projectConfig?.proj_name || 'YouTube Video'
+  const lang = props.projectConfig?.proj_admin_language || 'en'
+  const inlineKb = !useRag.value ? (props.projectConfig?.proj_kb_content || '') : ''
+
+  let prompt = `You are a friendly, concise voice assistant helping the user discuss the YouTube video "${title}".
+Respond naturally in the user's spoken language (default language: ${lang}).
+STRICT GROUNDING RULES:
+- Base every answer strictly on the video content provided below${useRag.value ? ' or retrieved via search_video_knowledge' : ''}.
+- NEVER invent facts, quotes, or details not present in the video. If something is not mentioned in the video, say so clearly.
+- Keep spoken replies concise, conversational, and direct (2 to 4 sentences unless the user asks for details).`
+
+  if (props.hasEmbeddedYoutubePlayer) {
+    prompt += `
+- When the user asks to jump to, watch, or show a specific moment of the video, call the tool seek_youtube_video with the exact timestamp in seconds.`
+  }
+
+  if (useRag.value) {
+    prompt += `
+- For any question about the video's content, facts, timestamps, or quotes, ALWAYS call search_video_knowledge first before answering.`
+  } else if (inlineKb) {
+    prompt += `
+
+<video_knowledge_base>
+${inlineKb}
+</video_knowledge_base>`
+  }
+
+  return prompt
+}
+
+const buildToolDeclarations = () => {
+  const decls = [
+    {
+      name: 'end_conversation',
+      description: 'Call this when the user says goodbye or wants to end the voice conversation.',
+      parameters: { type: 'OBJECT', properties: {} },
+    },
+  ]
+
+  if (useRag.value) {
+    decls.push({
+      name: 'search_video_knowledge',
+      description: 'Search the YouTube video transcript and visual summary for facts, quotes, or timestamps.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          query: { type: 'STRING', description: 'Search query in the video language' },
+        },
+        required: ['query'],
+      },
+    })
+  }
+
+  if (props.hasEmbeddedYoutubePlayer) {
+    decls.push({
+      name: 'seek_youtube_video',
+      description: 'Jump and play the embedded YouTube video at a specific timestamp in seconds.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          seconds: { type: 'NUMBER', description: 'Timestamp in seconds from the start of the video' },
+        },
+        required: ['seconds'],
+      },
+    })
+  }
+
+  return [{ functionDeclarations: decls }]
+}
+
+// ── PCM Encoding / Decoding Helpers ────────────────────────────────────────
+const float32ToInt16Base64 = (float32Array) => {
+  const int16 = new Int16Array(float32Array.length)
+  for (let i = 0; i < float32Array.length; i++) {
+    const s = Math.max(-1, Math.min(1, float32Array[i]))
+    int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff
+  }
+  const bytes = new Uint8Array(int16.buffer)
+  let binary = ''
+  const chunkSize = 0x8000
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunkSize))
+  }
+  return btoa(binary)
+}
+
+const stopScheduledAudio = () => {
+  for (const src of activePlaybackSources) {
+    try { src.stop() } catch (_) {}
+  }
+  activePlaybackSources = []
+  if (playbackContext) {
+    nextPlaybackTime = playbackContext.currentTime
+  }
+  agentAudioLevel.value = 0
+}
+
+const enqueuePcm24kAudio = (base64Data) => {
+  if (isPaused.value || isMuted.value) return
+  if (!playbackContext) {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext
+    playbackContext = new AudioCtx({ sampleRate: 24000 })
+    nextPlaybackTime = playbackContext.currentTime
+  }
+  if (playbackContext.state === 'suspended') {
+    playbackContext.resume().catch(() => {})
+  }
+
+  const binary = atob(base64Data)
+  const bytes = new Uint8Array(binary.length)
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+  const int16 = new Int16Array(bytes.buffer)
+  const float32 = new Float32Array(int16.length)
+  let sumSq = 0
+  for (let i = 0; i < int16.length; i++) {
+    const v = int16[i] / 32768
+    float32[i] = v
+    sumSq += v * v
+  }
+
+  const rms = Math.sqrt(sumSq / Math.max(1, float32.length))
+  agentAudioLevel.value = Math.min(1, rms * 4.5)
+  speakerState.value = 'speaking'
+
+  const buffer = playbackContext.createBuffer(1, float32.length, 24000)
+  buffer.getChannelData(0).set(float32)
+
+  const source = playbackContext.createBufferSource()
+  source.buffer = buffer
+  source.connect(playbackContext.destination)
+
+  const now = playbackContext.currentTime
+  const startAt = Math.max(now + 0.02, nextPlaybackTime)
+  source.start(startAt)
+  nextPlaybackTime = startAt + buffer.duration
+  activePlaybackSources.push(source)
+
+  source.onended = () => {
+    activePlaybackSources = activePlaybackSources.filter((s) => s !== source)
+    if (activePlaybackSources.length === 0) {
+      agentAudioLevel.value = 0
+      if (bannerState.value === 'conversation' && !isPaused.value) {
+        speakerState.value = 'listening'
+      }
+    }
+  }
+}
+
+// ── Microphone Capture (16kHz PCM) ─────────────────────────────────────────
+const startMicCapture = async () => {
+  captureStream = await navigator.mediaDevices.getUserMedia({
+    audio: {
+      channelCount: 1,
+      sampleRate: 16000,
+      echoCancellation: true,
+      noiseSuppression: true,
+      autoGainControl: true,
+    },
+  })
+
+  const AudioCtx = window.AudioContext || window.webkitAudioContext
+  captureContext = new AudioCtx({ sampleRate: 16000 })
+  captureSource = captureContext.createMediaStreamSource(captureStream)
+  captureProcessor = captureContext.createScriptProcessor(4096, 1, 1)
+
+  captureProcessor.onaudioprocess = (e) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN || isPaused.value || isMuted.value) {
+      userAudioLevel.value = 0
+      isUserSpeaking.value = false
+      return
+    }
+    const input = e.inputBuffer.getChannelData(0)
+    let sumSq = 0
+    for (let i = 0; i < input.length; i++) sumSq += input[i] * input[i]
+    const rms = Math.sqrt(sumSq / input.length)
+    userAudioLevel.value = Math.min(1, rms * 5)
+    isUserSpeaking.value = rms > 0.015
+
+    const b64 = float32ToInt16Base64(input)
+    ws.send(JSON.stringify({
+      realtimeInput: {
+        mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: b64 }],
+      },
+    }))
+  }
+
+  captureSource.connect(captureProcessor)
+  captureProcessor.connect(captureContext.destination)
+}
+
+const stopMicCapture = () => {
+  try { captureProcessor?.disconnect() } catch (_) {}
+  try { captureSource?.disconnect() } catch (_) {}
+  try { captureContext?.close() } catch (_) {}
+  if (captureStream) {
+    captureStream.getTracks().forEach((t) => { try { t.stop() } catch (_) {} })
+  }
+  captureProcessor = null
+  captureSource = null
+  captureContext = null
+  captureStream = null
+  userAudioLevel.value = 0
+  isUserSpeaking.value = false
+}
+
+// ── Tool Execution ─────────────────────────────────────────────────────────
+const handleToolCall = async (toolCall) => {
+  const calls = toolCall?.functionCalls || []
+  if (!calls.length || !ws || ws.readyState !== WebSocket.OPEN) return
+
+  speakerState.value = 'thinking'
+  const responses = []
+
+  for (const call of calls) {
+    const fnName = call.name
+    const args = call.args || {}
+    let result = { ok: true }
+
+    try {
+      if (fnName === 'search_video_knowledge') {
+        const res = await apiClient().post('/project/rag-search', {
+          projectUid: props.projectUid,
+          query: args.query || '',
+          topK: 5,
+        })
+        const chunks = res.data?.results?.chunks || res.data?.chunks || []
+        result = {
+          context: chunks.map((c) => c.content || c).join('\n\n') || 'No matching passage found in the video.',
+        }
+      } else if (fnName === 'seek_youtube_video') {
+        const sec = Math.max(0, Math.floor(Number(args.seconds) || 0))
+        emit('seek-youtube', sec)
+        result = { status: 'seeking', seconds: sec }
+      } else if (fnName === 'end_conversation') {
+        result = { status: 'closing' }
+        setTimeout(() => abortConversation(), 1800)
+      }
+    } catch (err) {
+      result = { error: err?.message || 'Tool execution failed' }
+    }
+
+    responses.push({
+      id: call.id,
+      name: fnName,
+      response: result,
+    })
+  }
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ toolResponse: { functionResponses: responses } }))
+  }
+}
+
+// ── WebSocket Lifecycle ────────────────────────────────────────────────────
+const sendTextTurn = (text) => {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return
+  ws.send(JSON.stringify({
+    clientContent: {
+      turns: [{ role: 'user', parts: [{ text }] }],
+      turnComplete: true,
+    },
+  }))
+}
+
+const handleServerMessage = async (rawData) => {
+  let text = ''
+  try {
+    text = rawData instanceof Blob ? await rawData.text() : String(rawData)
+  } catch {
+    return
+  }
+  let msg = null
+  try { msg = JSON.parse(text) } catch { return }
+
+  if (msg.setupComplete) {
+    bannerState.value = 'conversation'
+    speakerState.value = 'listening'
+    hasSessionStarted.value = true
+    sessionStartTimeMs = Date.now()
+    emit('conversation-started')
+
+    await startMicCapture()
+
+    if (pendingInitialQuestion) {
+      const q = pendingInitialQuestion
+      pendingInitialQuestion = null
+      sendTextTurn(q)
+    } else {
+      sendTextTurn('Greet the user briefly in 1 short sentence and invite them to ask any question about this video.')
+    }
+    return
+  }
+
+  if (msg.usageMetadata) {
+    const u = msg.usageMetadata
+    usageTotals.input_text_tokens = Math.max(usageTotals.input_text_tokens, u.promptTokenCount || 0)
+    usageTotals.output_text_tokens = Math.max(usageTotals.output_text_tokens, u.responseTokenCount || 0)
+  }
+
+  if (msg.toolCall) {
+    await handleToolCall(msg.toolCall)
+    return
+  }
+
+  const sc = msg.serverContent
+  if (!sc) return
+
+  if (sc.interrupted) {
+    stopScheduledAudio()
+    speakerState.value = 'listening'
+    return
+  }
+
+  if (sc.inputTranscription?.text) {
+    currentUserTranscript += sc.inputTranscription.text
+  }
+  if (sc.outputTranscription?.text) {
+    currentAiTranscript += sc.outputTranscription.text
+  }
+
+  if (sc.modelTurn?.parts) {
+    for (const part of sc.modelTurn.parts) {
+      if (part.inlineData?.mimeType?.startsWith('audio/') && part.inlineData?.data) {
+        enqueuePcm24kAudio(part.inlineData.data)
+      }
+    }
+  }
+
+  if (sc.turnComplete) {
+    if (currentUserTranscript.trim()) {
+      transcriptEntries.push({ role: 'user', text: currentUserTranscript.trim() })
+      currentUserTranscript = ''
+    }
+    if (currentAiTranscript.trim()) {
+      transcriptEntries.push({ role: 'assistant', text: currentAiTranscript.trim() })
+      currentAiTranscript = ''
+    }
+  }
+}
+
+const startSession = async (initialQuestion = null) => {
+  if (bannerState.value === 'connecting' || bannerState.value === 'conversation') return
+  errorMessage.value = ''
+  conversationEnded.value = false
+  hasSavedConversation = false
+  isPaused.value = false
+  isMuted.value = false
+  pausedTotalMs = 0
+  pauseStartedAtMs = 0
+  transcriptEntries = []
+  pendingInitialQuestion = initialQuestion
+  bannerState.value = 'connecting'
+
+  try {
+    const { data } = await apiClient().post('/openai/gemini-live-session', {
+      projectUid: props.projectUid,
+    })
+
+    if (!data?.wsUrl || !data?.model) {
+      throw new Error('Could not initialize Gemini Live session')
+    }
+
+    ws = new WebSocket(data.wsUrl)
+
+    ws.onopen = () => {
+      const setupPayload = {
+        setup: {
+          model: data.model,
+          generationConfig: {
+            responseModalities: ['AUDIO'],
+            temperature: props.temperature ?? 0.7,
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: {
+                  voiceName: resolveGeminiVoice(props.voiceType),
+                },
+              },
+            },
+          },
+          contextWindowCompression: {
+            slidingWindow: {},
+          },
+          inputAudioTranscription: {},
+          outputAudioTranscription: {},
+          systemInstruction: {
+            parts: [{ text: buildSystemInstruction() }],
+          },
+          tools: buildToolDeclarations(),
+        },
+      }
+      ws.send(JSON.stringify(setupPayload))
+    }
+
+    ws.onmessage = (evt) => handleServerMessage(evt.data)
+
+    ws.onerror = (err) => {
+      console.error('[GeminiLive] WebSocket error:', err)
+      errorMessage.value = 'Voice connection error. Please try again.'
+    }
+
+    ws.onclose = () => {
+      if (bannerState.value === 'conversation' || bannerState.value === 'connecting') {
+        cleanupAndPersist()
+      }
+    }
+  } catch (err) {
+    console.error('[GeminiLive] Failed to start session:', err)
+    errorMessage.value = err?.response?.data?.error || err?.message || 'Unable to start voice session.'
+    bannerState.value = 'initial'
+    hasSessionStarted.value = false
+  }
+}
+
+const cleanupAndPersist = async () => {
+  stopMicCapture()
+  stopScheduledAudio()
+  try { playbackContext?.close() } catch (_) {}
+  playbackContext = null
+
+  if (ws) {
+    const oldWs = ws
+    ws = null
+    try { oldWs.close() } catch (_) {}
+  }
+
+  const activeDurationMs = sessionStartTimeMs
+    ? Math.max(0, Date.now() - sessionStartTimeMs - pausedTotalMs)
+    : 0
+  sessionStartTimeMs = 0
+
+  bannerState.value = 'initial'
+  speakerState.value = 'idle'
+  hasSessionStarted.value = false
+  conversationEnded.value = true
+  isPaused.value = false
+
+  if (!hasSavedConversation && activeDurationMs >= 2000 && props.projectUid) {
+    hasSavedConversation = true
+    const durationSec = Math.round(activeDurationMs / 1000)
+    try {
+      await apiClient().post('/conversations/save', {
+        projectUid: props.projectUid,
+        transcript: transcriptEntries,
+        duration: activeDurationMs,
+        timestamp: new Date().toISOString(),
+        tokenUsage: usageTotals,
+      })
+    } catch (e) {
+      console.warn('[GeminiLive] Failed to save conversation:', e?.message || e)
+    }
+
+    if (props.clientUid && durationSec > 0) {
+      try {
+        await apiClient().post('/project/decrement-budget', {
+          clientUid: props.clientUid,
+          projectUid: props.projectUid,
+          seconds: durationSec,
+        })
+      } catch (e) {
+        console.warn('[GeminiLive] Failed to decrement budget:', e?.message || e)
+      }
+    }
+  }
+
+  emit('close')
+}
+
+// ── Public Controls (compatible with VideoPlayerCard) ──────────────────────
+const handleBannerClick = () => {
+  if (bannerState.value === 'initial') {
+    startSession(null)
+  }
+}
+
+const handleSuggestedQuestion = (q) => {
+  if (bannerState.value === 'initial') {
+    startSession(q)
+  } else if (bannerState.value === 'conversation') {
+    sendTextTurn(q)
+  }
+}
+
+const pauseAgent = () => {
+  if (bannerState.value !== 'conversation' || isPaused.value) return
+  isPaused.value = true
+  isMuted.value = true
+  pauseStartedAtMs = Date.now()
+  stopScheduledAudio()
+  speakerState.value = 'idle'
+}
+
+const resumeAgent = ({ pauseExternalMedia = true } = {}) => {
+  if (bannerState.value !== 'conversation') return
+  if (pauseStartedAtMs) {
+    pausedTotalMs += Date.now() - pauseStartedAtMs
+    pauseStartedAtMs = 0
+  }
+  isPaused.value = false
+  isMuted.value = false
+  speakerState.value = 'listening'
+  if (pauseExternalMedia) {
+    emit('conversation-started')
+  }
+}
+
+const togglePause = () => {
+  if (bannerState.value === 'initial') {
+    startSession(null)
+    return
+  }
+  if (isPaused.value) resumeAgent({ pauseExternalMedia: true })
+  else pauseAgent()
+}
+
+const abortConversation = () => {
+  cleanupAndPersist()
+}
+
+const setExternalMediaPlaying = (playing) => {
+  isExternalMediaPlaying = !!playing
+}
+
+const onExternalMediaStoppedByUser = () => {
+  if (bannerState.value === 'conversation' && isPaused.value) {
+    resumeAgent({ pauseExternalMedia: false })
+  }
+}
+
+onBeforeUnmount(() => {
+  if (ws || captureStream || playbackContext) {
+    cleanupAndPersist()
+  }
+})
+
+defineExpose({
+  bannerState,
+  isPaused,
+  handleBannerClick,
+  pauseAgent,
+  resumeAgent,
+  togglePause,
+  setExternalMediaPlaying,
+  onExternalMediaStoppedByUser,
+})
+</script>
+
+<style scoped>
+.suggested-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.suggested-question-btn,
+.invitation-text-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid;
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.35;
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.15s ease;
+}
+
+.suggested-question-btn:hover,
+.invitation-text-btn:hover {
+  opacity: 0.88;
+  transform: translateY(-1px);
+}
+
+.btn-sparkle-icon {
+  flex-shrink: 0;
+  opacity: 0.8;
+}
+
+.connecting-display {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.connecting-spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid rgba(148, 163, 184, 0.3);
+  border-radius: 50%;
+  animation: gemini-spin 0.8s linear infinite;
+}
+
+@keyframes gemini-spin {
+  to { transform: rotate(360deg); }
+}
+</style>
