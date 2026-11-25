@@ -37,6 +37,19 @@
         </v-btn>
       </div>
 
+      <!-- Info message (e.g. duplicate video already in library or cancelled) -->
+      <v-alert
+        v-if="infoMsg"
+        type="info"
+        variant="tonal"
+        density="compact"
+        closable
+        class="mt-3 w-100"
+        @click:close="infoMsg = ''"
+      >
+        {{ infoMsg }}
+      </v-alert>
+
       <!-- Error message -->
       <v-alert
         v-if="errorMsg"
@@ -93,6 +106,21 @@
         <div v-if="processingSubDetail" class="text-caption mt-2" style="color: #64748b; max-width: 440px;">
           {{ processingSubDetail }}
         </div>
+
+        <!-- Cancel button -->
+        <v-btn
+          variant="outlined"
+          color="error"
+          size="small"
+          rounded="pill"
+          class="mt-5 text-none px-4"
+          :loading="cancelling"
+          :disabled="cancelling"
+          @click="handleCancelAnalysis"
+        >
+          <v-icon start size="16">mdi-close-circle-outline</v-icon>
+          {{ cancelling ? t('home.cancelling') : t('home.cancelAnalysis') }}
+        </v-btn>
       </v-card>
     </div>
 
@@ -159,7 +187,9 @@ const { t } = useI18n()
 
 const youtubeUrl = ref('')
 const errorMsg = ref('')
+const infoMsg = ref('')
 const processing = ref(false)
+const cancelling = ref(false)
 const processingUrl = ref('')
 const processingPhase = ref('')
 const processingSubDetail = ref('')
@@ -167,6 +197,9 @@ const elapsedSec = ref(0)
 
 let elapsedTimer = null
 let isUnmounted = false
+let activeTaskId = null
+let activeProjUid = null
+let cancelledByUser = false
 
 const stopTimers = () => {
   if (elapsedTimer) {
@@ -197,6 +230,7 @@ const formatElapsed = (sec) => {
 const clearInput = () => {
   youtubeUrl.value = ''
   errorMsg.value = ''
+  infoMsg.value = ''
 }
 
 const getBrowserLanguage = () => {
@@ -209,14 +243,17 @@ const getBrowserLanguage = () => {
 
 const waitForYoutubeTask = async (taskId) => {
   let consecutiveErrors = 0
-  while (!isUnmounted) {
+  while (!isUnmounted && !cancelledByUser) {
     await new Promise((resolve) => setTimeout(resolve, 2500))
-    if (isUnmounted) throw new Error('Cancelled')
+    if (isUnmounted || cancelledByUser) throw new Error('Cancelled')
     try {
       const task = await videoService.getYoutubeTaskStatus(taskId)
       consecutiveErrors = 0
       if (!task) continue
 
+      if (task.status === 'cancelled') {
+        throw new Error('Cancelled')
+      }
       if (task.phase && task.status === 'running') {
         processingPhase.value = task.phase
         processingSubDetail.value = task.detail || ''
@@ -228,6 +265,7 @@ const waitForYoutubeTask = async (taskId) => {
         throw new Error(task.error || 'Failed to analyze YouTube video.')
       }
     } catch (pollErr) {
+      if (pollErr.message === 'Cancelled') throw pollErr
       if (pollErr.response?.status === 404) {
         throw new Error(t('home.errors.taskExpired'))
       }
@@ -243,9 +281,41 @@ const waitForYoutubeTask = async (taskId) => {
   throw new Error('Cancelled')
 }
 
+const handleCancelAnalysis = async () => {
+  if (!processing.value || cancelling.value) return
+  cancelling.value = true
+  cancelledByUser = true
+  stopTimers()
+
+  const taskToCancel = activeTaskId
+  const projToDelete = activeProjUid
+  const clientUid = authStore.clientUid
+
+  activeTaskId = null
+  activeProjUid = null
+
+  try {
+    if (taskToCancel) {
+      await videoService.cancelYoutubeTask(taskToCancel).catch(() => {})
+    }
+    if (projToDelete && clientUid) {
+      await videoService.removeVideo(clientUid, projToDelete).catch(() => {})
+    }
+  } finally {
+    cancelling.value = false
+    processing.value = false
+    processingSubDetail.value = ''
+    infoMsg.value = t('home.analysisCancelled')
+  }
+}
+
 const handleAddVideo = async () => {
   if (processing.value) return
   errorMsg.value = ''
+  infoMsg.value = ''
+  cancelledByUser = false
+  activeTaskId = null
+  activeProjUid = null
 
   let ytUrl = youtubeUrl.value.trim()
   if (!ytUrl) {
@@ -267,6 +337,23 @@ const handleAddVideo = async () => {
     return
   }
 
+  // Prevent duplicate scraping: if this video ID is already in My Videos, open it directly!
+  const targetVideoId = videoService.extractYoutubeId(ytUrl)
+  if (targetVideoId) {
+    if (videosStore.videos.length === 0) {
+      await videosStore.fetchVideos(clientUid)
+    }
+    const existing = videosStore.videos.find(
+      (v) => videoService.extractYoutubeId(v.proj_youtube_url || '') === targetVideoId
+    )
+    if (existing) {
+      infoMsg.value = t('home.alreadyExists')
+      youtubeUrl.value = ''
+      await videosStore.selectVideo(existing.proj_uid)
+      return
+    }
+  }
+
   processing.value = true
   processingUrl.value = ytUrl
   processingPhase.value = t('home.phases.creatingProfile')
@@ -284,12 +371,20 @@ const handleAddVideo = async () => {
       projectName: 'YouTube Video',
     })
 
+    if (cancelledByUser) {
+      if (createRes?.results?.proj_uid) {
+        videoService.removeVideo(clientUid, createRes.results.proj_uid).catch(() => {})
+      }
+      return
+    }
+
     if (!createRes?.success || !createRes?.results?.proj_uid) {
       throw new Error(t('home.errors.createProjectFailed'))
     }
 
     const projUid = createRes.results.proj_uid
     createdProjUid = projUid
+    activeProjUid = projUid
 
     // 2. Launch async multimodal YouTube analysis (includes backend EMBED_DISABLED pre-flight check)
     processingPhase.value = t('home.phases.connectingYoutube')
@@ -303,8 +398,16 @@ const handleAddVideo = async () => {
 
     let ytFinalResult = ytRes?.results || {}
     if (ytFinalResult.taskId) {
+      activeTaskId = ytFinalResult.taskId
+      if (cancelledByUser) {
+        videoService.cancelYoutubeTask(activeTaskId).catch(() => {})
+        videoService.removeVideo(clientUid, projUid).catch(() => {})
+        return
+      }
       ytFinalResult = await waitForYoutubeTask(ytFinalResult.taskId)
     }
+
+    if (cancelledByUser) return
 
     const sourceLabel = ytFinalResult?.sourceName || ytUrl
 
@@ -314,6 +417,8 @@ const handleAddVideo = async () => {
     stopTimers()
     processing.value = false
     processingSubDetail.value = ''
+    activeTaskId = null
+    activeProjUid = null
     youtubeUrl.value = ''
 
     await Promise.all([
@@ -321,10 +426,12 @@ const handleAddVideo = async () => {
       videosStore.selectVideo(projUid),
     ])
   } catch (err) {
-    if (isUnmounted) return
+    if (isUnmounted || cancelledByUser || err?.message === 'Cancelled') return
     stopTimers()
     processing.value = false
     processingSubDetail.value = ''
+    activeTaskId = null
+    activeProjUid = null
 
     const errCode = err?.response?.data?.code
     // Clean up empty orphan project shell if video was rejected pre-flight

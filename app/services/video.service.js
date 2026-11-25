@@ -86,6 +86,15 @@ async function getYoutubeTaskStatus(taskId) {
 }
 
 /**
+ * Cancel an in-progress async YouTube analysis task
+ */
+async function cancelYoutubeTask(taskId) {
+    if (!taskId) return null
+    const { data } = await apiClient().post('/pdf/youtube-cancel', { taskId })
+    return data
+}
+
+/**
  * Notify user by email when YouTube processing is complete (non-fatal)
  */
 async function notifyComplete({ projectUid, clientUid, sourceLabel, language = 'fr', elapsedSec = 0 }) {
@@ -126,6 +135,7 @@ export default {
     createYoutubeProject,
     startYoutubeAnalysis,
     getYoutubeTaskStatus,
+    cancelYoutubeTask,
     notifyComplete,
     removeVideo,
     deleteAccount,

@@ -4,9 +4,9 @@
       <!-- Brand badge -->
       <div class="d-flex align-center justify-center ga-2 mb-5">
         <img
-          src="/logo-talkiz-icon.svg"
+          src="/logo-talkiz-icon.svg?v=4"
           alt="Talkiz"
-          style="height: 36px; width: 36px; background: #000; border-radius: 10px; padding: 5px; border: 1px solid rgba(255,255,255,0.14);"
+          style="height: 38px; width: 38px; border-radius: 50%;"
         />
         <span style="font-size: 1.5rem; font-weight: 700; color: #3b82f6; letter-spacing: -0.025em;">
           Talkiz<span style="color: #ffffff;">.ai</span>

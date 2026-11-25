@@ -38,6 +38,10 @@ export default {
     welcomeSubtitleAfter: 'Talkiz generates your interactive voice assistant to answer all your questions.',
     viewMyVideos: 'View my {{count}} video',
     viewMyVideosPlural: 'View my {{count}} videos',
+    cancelAnalysis: 'Cancel',
+    cancelling: 'Cancelling...',
+    alreadyExists: 'This video is already in your library — opening it now.',
+    analysisCancelled: 'Video analysis cancelled.',
     errors: {
       emptyUrl: 'Please paste a YouTube URL.',
       invalidUrl: 'Invalid YouTube URL. Example: https://www.youtube.com/watch?v=...',

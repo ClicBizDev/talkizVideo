@@ -33,7 +33,7 @@
 
           <NuxtLink to="/" class="d-flex align-center text-decoration-none ml-1" style="gap: 0.4rem; min-width: 0;">
             <img
-              src="/logo-talkiz-icon.svg"
+              src="/logo-talkiz-icon.svg?v=4"
               alt="Talkiz"
               class="brand-icon flex-shrink-0"
             />
@@ -199,11 +199,9 @@ onUnmounted(() => {
 
 <style scoped>
 .brand-icon {
-  height: 1.9rem;
-  width: 1.9rem;
-  background-color: #000000;
-  border-radius: 0.55rem;
-  padding: 4px;
+  height: 2rem;
+  width: 2rem;
+  border-radius: 50%;
 }
 
 .brand-wordmark {
