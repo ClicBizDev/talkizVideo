@@ -1,5 +1,5 @@
 <template>
-  <v-dialog v-model="dialogModel" max-width="460">
+  <v-dialog v-model="dialogModel" max-width="460" width="calc(100% - 24px)">
     <v-card rounded="xl" class="pa-2">
       <!-- Header -->
       <v-card-title class="d-flex align-center justify-space-between pb-1">
@@ -131,7 +131,7 @@
     </v-card>
 
     <!-- Permanent deletion confirmation modal -->
-    <v-dialog v-model="showDeleteConfirm" max-width="430" persistent>
+    <v-dialog v-model="showDeleteConfirm" max-width="430" width="calc(100% - 24px)" persistent>
       <v-card rounded="xl" class="pa-3">
         <v-card-title class="d-flex align-center ga-2 text-subtitle-1 font-weight-bold text-red-darken-2 pb-1">
           <v-icon color="error">mdi-alert-circle-outline</v-icon>

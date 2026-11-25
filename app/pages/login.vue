@@ -2,14 +2,14 @@
   <div class="login-backdrop d-flex align-center justify-center pa-4">
     <div class="login-card">
       <!-- Brand badge -->
-      <div class="d-flex align-center justify-center ga-2 mb-5">
+      <div class="d-flex align-center justify-center ga-3 mb-5">
         <img
-          src="/logo-talkiz-icon.svg?v=4"
+          src="/logo-talkiz-icon.svg?v=6"
           alt="Talkiz"
-          style="height: 38px; width: 38px; border-radius: 50%;"
+          style="height: 2.5rem; width: 2.5rem; background-color: #FF0000; border-radius: 0.75rem; padding: 5px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);"
         />
-        <span style="font-size: 1.5rem; font-weight: 700; color: #3b82f6; letter-spacing: -0.025em;">
-          Talkiz<span style="color: #FF0000;">.yt</span>
+        <span style="font-size: 2rem; line-height: 2.25rem; font-weight: 700; color: #3b82f6; letter-spacing: -0.025em; -webkit-font-smoothing: antialiased;">
+          Talkiz<span style="color: #DC2626;">.yt</span>
         </span>
       </div>
 
@@ -247,6 +247,17 @@ const loginWithEmail = async () => {
   padding: 36px 30px 28px;
   box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
   color: #ffffff;
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    padding: 26px 20px 22px;
+    border-radius: 18px;
+  }
+
+  .login-title {
+    font-size: 1.3rem;
+  }
 }
 
 .login-title {

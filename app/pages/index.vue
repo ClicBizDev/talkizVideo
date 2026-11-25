@@ -8,12 +8,12 @@
     <!-- ==================== PUBLIC LANDING PAGE (LOGGED OUT) ==================== -->
     <template v-else-if="!authStore.isAuthenticated">
       <!-- Hero Section (tldr.yt-inspired) -->
-      <div class="landing-hero text-center w-100 mt-6 mt-sm-10 mb-10" style="max-width: 720px;">
-        <h1 class="hero-headline mb-4">
+      <div class="landing-hero text-center w-100 mt-3 mt-sm-8 mt-md-10 mb-7 mb-sm-10 px-1" style="max-width: 720px;">
+        <h1 class="hero-headline mb-3 mb-sm-4">
           Have a voice chat with a YouTube video
         </h1>
 
-        <p class="hero-subtitle mx-auto mb-7" style="max-width: 520px;">
+        <p class="hero-subtitle mx-auto mb-5 mb-sm-7" style="max-width: 520px;">
           {{ t('home.welcomeSubtitleBefore') }}
           <span class="inline-plus-btn" aria-hidden="true">+</span>.
         </p>
@@ -46,6 +46,8 @@
               size="48"
               elevation="2"
               class="flex-shrink-0"
+              :loading="signingInGuest"
+              :disabled="signingInGuest"
               :title="t('home.analyzeTooltip')"
               @click="handleGuestSubmit"
             >
@@ -256,12 +258,14 @@
         <VideoPlayerCard
           :project="videosStore.activeVideo"
           :creditsDepleted="!authStore.hasCredits"
+          :autoStartAgent="autoStartAgent"
+          @auto-started="autoStartAgent = false"
           @conversation-ended="onConversationEnded"
         />
       </div>
 
       <!-- Empty welcome state when no video is selected yet -->
-      <div v-else class="d-flex flex-column align-center text-center mt-14 px-4" style="max-width: 480px;">
+      <div v-else class="d-flex flex-column align-center text-center mt-8 mt-sm-14 px-3 px-sm-4" style="max-width: 480px;">
         <v-avatar size="68" color="#eff6ff" class="mb-4">
           <v-icon size="38" color="#2196F3">mdi-play-circle-outline</v-icon>
         </v-avatar>
@@ -306,6 +310,8 @@ const videosStore = useVideosStore()
 const { t } = useI18n()
 
 const initializingAuth = ref(true)
+const signingInGuest = ref(false)
+const autoStartAgent = ref(false)
 const recentVideos = ref([])
 
 const youtubeUrl = ref('')
@@ -371,7 +377,26 @@ const clearInput = () => {
   infoMsg.value = ''
 }
 
-const handleGuestSubmit = () => {
+const triggerGoogleSignIn = async () => {
+  if (signingInGuest.value) return
+  signingInGuest.value = true
+  try {
+    const redirectTo = `${window.location.origin}/auth/callback`
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo },
+    })
+    if (error) {
+      signingInGuest.value = false
+      navigateTo('/login')
+    }
+  } catch {
+    signingInGuest.value = false
+    navigateTo('/login')
+  }
+}
+
+const handleGuestSubmit = async () => {
   errorMsg.value = ''
   let ytUrl = youtubeUrl.value.trim()
   if (ytUrl) {
@@ -387,14 +412,14 @@ const handleGuestSubmit = () => {
       localStorage.setItem(PENDING_URL_KEY, ytUrl)
     }
   }
-  navigateTo('/login')
+  await triggerGoogleSignIn()
 }
 
-const selectRecentVideoAsGuest = (vid) => {
+const selectRecentVideoAsGuest = async (vid) => {
   if (vid?.youtubeUrl && typeof localStorage !== 'undefined') {
     localStorage.setItem(PENDING_URL_KEY, vid.youtubeUrl)
   }
-  navigateTo('/login')
+  await triggerGoogleSignIn()
 }
 
 const getBrowserLanguage = () => {
@@ -513,6 +538,7 @@ const handleAddVideo = async () => {
     if (existing) {
       infoMsg.value = t('home.alreadyExists')
       youtubeUrl.value = ''
+      autoStartAgent.value = true
       await videosStore.selectVideo(existing.proj_uid)
       return
     }
@@ -582,6 +608,7 @@ const handleAddVideo = async () => {
     activeProjUid = null
     youtubeUrl.value = ''
 
+    autoStartAgent.value = true
     await Promise.all([
       videosStore.fetchVideos(clientUid),
       videosStore.selectVideo(projUid),
@@ -621,21 +648,26 @@ watch(
 )
 
 onMounted(async () => {
+  let pendingAutoScanUrl = ''
   try {
     const { data } = await supabase.auth.getSession()
     if (data?.session) {
       if (!authStore.isAuthenticated) {
         await authStore.hydrateFromSession(supabase, data.session)
       }
-      if (authStore.clientUid) {
-        videosStore.fetchVideos(authStore.clientUid)
-      }
-      // Pre-fill URL pasted before login so the user only has to click +
       if (typeof localStorage !== 'undefined') {
         const pendingUrl = localStorage.getItem(PENDING_URL_KEY)
         if (pendingUrl) {
+          pendingAutoScanUrl = pendingUrl
           youtubeUrl.value = pendingUrl
           localStorage.removeItem(PENDING_URL_KEY)
+        }
+      }
+      if (authStore.clientUid) {
+        if (pendingAutoScanUrl) {
+          await videosStore.fetchVideos(authStore.clientUid)
+        } else {
+          videosStore.fetchVideos(authStore.clientUid)
         }
       }
     } else {
@@ -644,6 +676,11 @@ onMounted(async () => {
     }
   } finally {
     initializingAuth.value = false
+  }
+
+  // Auto-start scan right after returning from Google sign-in with a pending URL
+  if (pendingAutoScanUrl && authStore.isAuthenticated && !isUnmounted) {
+    handleAddVideo()
   }
 })
 
@@ -655,17 +692,24 @@ onUnmounted(() => {
 
 <style scoped>
 .hero-headline {
-  font-size: clamp(2.1rem, 5vw, 3.6rem);
-  line-height: 1.1;
+  font-size: clamp(1.75rem, 6.2vw, 3.6rem);
+  line-height: 1.12;
   font-weight: 800;
   letter-spacing: -0.03em;
   color: #0f172a;
 }
 
 .hero-subtitle {
-  font-size: 1.05rem;
-  line-height: 1.6;
+  font-size: 0.95rem;
+  line-height: 1.55;
   color: #475569;
+}
+
+@media (min-width: 600px) {
+  .hero-subtitle {
+    font-size: 1.08rem;
+    line-height: 1.6;
+  }
 }
 
 .yt-input-pill {
@@ -776,6 +820,14 @@ onUnmounted(() => {
 
 .recent-video-card:hover .recent-play-overlay {
   opacity: 1;
+}
+
+/* On touch devices (tablets / phones), keep a subtle play badge visible */
+@media (hover: none) {
+  .recent-play-overlay {
+    opacity: 0.72;
+    background: rgba(15, 23, 42, 0.16);
+  }
 }
 
 .recent-video-title {

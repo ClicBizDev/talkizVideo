@@ -1,8 +1,8 @@
 <template>
-  <div class="d-flex flex-column align-center px-4 py-8" style="max-width: 980px; margin: 0 auto;">
+  <div class="d-flex flex-column align-center px-3 py-5 px-sm-4 py-sm-8" style="max-width: 980px; margin: 0 auto;">
     <!-- Back link -->
-    <div class="w-100 d-flex align-center justify-space-between mb-6 flex-wrap ga-2">
-      <v-btn variant="text" color="grey-darken-2" class="text-none" to="/">
+    <div class="w-100 d-flex align-center justify-space-between mb-5 mb-sm-6 flex-wrap ga-2">
+      <v-btn variant="text" color="grey-darken-2" class="text-none px-1" to="/">
         <v-icon start>mdi-arrow-left</v-icon>
         {{ t('billing.backToVideos') }}
       </v-btn>
@@ -18,11 +18,11 @@
     </div>
 
     <!-- Header -->
-    <div class="text-center mb-8" style="max-width: 600px;">
-      <h1 class="text-h4 font-weight-bold mb-2" style="color: #0f172a;">
+    <div class="text-center mb-6 mb-sm-8" style="max-width: 600px;">
+      <h1 class="text-h5 text-sm-h4 font-weight-bold mb-2" style="color: #0f172a;">
         {{ t('billing.title') }}
       </h1>
-      <p class="text-body-1 text-grey-darken-1">
+      <p class="text-body-2 text-sm-body-1 text-grey-darken-1">
         <strong>{{ t('billing.subtitleStrong') }}</strong>{{ t('billing.subtitleAfter') }}
       </p>
     </div>
@@ -42,9 +42,9 @@
 
     <!-- Pricing cards -->
     <v-row class="w-100" align="stretch">
-      <v-col v-for="plan in plans" :key="plan.id" cols="12" md="4">
+      <v-col v-for="plan in plans" :key="plan.id" cols="12" sm="6" md="4">
         <v-card
-          class="pa-6 h-100 d-flex flex-column rounded-xl"
+          class="pa-5 pa-sm-6 h-100 d-flex flex-column rounded-xl"
           :elevation="plan.popular ? 6 : 1"
           :style="{
             border: plan.popular ? '2px solid #2196F3' : '1px solid #e2e8f0',

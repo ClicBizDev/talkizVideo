@@ -172,7 +172,7 @@
     </div>
 
     <!-- RGPD Microphone Consent Modal before first WebRTC / OpenAI activation -->
-    <v-dialog v-model="showMicConsentDialog" max-width="440" persistent>
+    <v-dialog v-model="showMicConsentDialog" max-width="440" width="calc(100% - 24px)" persistent>
       <v-card rounded="xl" class="pa-3">
         <v-card-title class="d-flex align-center ga-2 text-subtitle-1 font-weight-bold pb-1">
           <v-avatar size="34" color="#eff6ff">
@@ -235,9 +235,13 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  autoStartAgent: {
+    type: Boolean,
+    default: false,
+  },
 })
 
-const emit = defineEmits(['conversation-ended'])
+const emit = defineEmits(['conversation-ended', 'auto-started'])
 const { t } = useI18n()
 
 const agentPlayer = ref(null)
@@ -293,7 +297,7 @@ const acceptMicConsent = async () => {
   }
 }
 
-const playerMaxWidth = computed(() => props.project?.proj_link_width || '440px')
+const playerMaxWidth = computed(() => props.project?.proj_link_width || '520px')
 
 const videoTitle = computed(() => props.project?.proj_youtube_title || props.project?.proj_name || '')
 
@@ -455,15 +459,40 @@ const handleConversationEnded = () => {
   }, 1500)
 }
 
+const triggerAutoStartIfRequested = async () => {
+  if (!props.autoStartAgent || props.creditsDepleted || embedBlocked.value || !props.project?.proj_uid) {
+    return
+  }
+  emit('auto-started')
+  loadMicConsent()
+  await nextTick()
+  setTimeout(() => {
+    if (props.creditsDepleted || embedBlocked.value) return
+    if (!micConsentAccepted.value) {
+      showMicConsentDialog.value = true
+      return
+    }
+    if (agentPlayer.value && typeof agentPlayer.value.handleBannerClick === 'function') {
+      agentPlayer.value.handleBannerClick()
+    }
+  }, 350)
+}
+
 watch(() => props.project?.proj_uid, () => {
   clearYoutubeUserPauseTimer()
   isYoutubeCurrentlyPlaying = false
   embedBlocked.value = false
+  triggerAutoStartIfRequested()
+})
+
+watch(() => props.autoStartAgent, (val) => {
+  if (val) triggerAutoStartIfRequested()
 })
 
 onMounted(() => {
   loadMicConsent()
   window.addEventListener('message', handleYoutubeMessage)
+  triggerAutoStartIfRequested()
 })
 
 onBeforeUnmount(() => {

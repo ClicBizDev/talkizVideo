@@ -1,10 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" shape-rendering="geometricPrecision">
-  <circle cx="60" cy="60" r="60" fill="#FF0000" />
-  <g transform="translate(60 60) scale(0.88) translate(-60 -56)">
-    <rect x="39" y="13" width="42" height="58" rx="21" fill="none" stroke="#ffffff" stroke-width="8.5" />
-    <path d="M 60 35 C 65.5 45.2 65.5 45.2 75.8 50.8 C 65.5 56.4 65.5 56.4 60 66.6 C 54.5 56.4 54.5 56.4 44.2 50.8 C 54.5 45.2 54.5 45.2 60 35 Z" fill="#ffffff" />
-    <path d="M 27 48 L 27 52 A 33 33 0 0 0 93 52 L 93 48" fill="none" stroke="#ffffff" stroke-width="8.5" stroke-linecap="round" />
-    <line x1="60" y1="84" x2="60" y2="100" stroke="#ffffff" stroke-width="8.5" />
-    <line x1="38" y1="100" x2="82" y2="100" stroke="#ffffff" stroke-width="8.5" stroke-linecap="round" />
-  </g>
+  <rect x="39" y="13" width="42" height="58" rx="21" fill="none" stroke="#ffffff" stroke-width="6.8" />
+  <path d="M 60 36.1 C 65.24 46.26 65.24 46.26 75.4 51.5 C 65.24 56.74 65.24 56.74 60 66.9 C 54.76 56.74 54.76 56.74 44.6 51.5 C 54.76 46.26 54.76 46.26 60 36.1 Z" fill="#ffffff" />
+  <path d="M 28 48 L 28 52 A 32 32 0 0 0 92 52 L 92 48" fill="none" stroke="#ffffff" stroke-width="6.8" stroke-linecap="round" />
+  <line x1="60" y1="83.5" x2="60" y2="99.5" stroke="#ffffff" stroke-width="6.8" />
+  <line x1="40" y1="99.5" x2="80" y2="99.5" stroke="#ffffff" stroke-width="6.8" stroke-linecap="round" />
 </svg>

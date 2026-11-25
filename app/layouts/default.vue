@@ -3,8 +3,8 @@
     <!-- Header Talkiz Video -->
     <v-app-bar
       :elevation="0"
-      height="58"
-      style="background: rgba(255, 255, 255, 0.94) !important; backdrop-filter: blur(12px); border-bottom: 1px solid #e2e8f0;"
+      height="64"
+      style="background: rgba(255, 255, 255, 0.96) !important; backdrop-filter: blur(12px); border-bottom: 1px solid #e2e8f0;"
     >
       <div class="header-inner d-flex justify-space-between align-center w-100 h-100 px-2 px-sm-4">
         <!-- Left: Videos drawer toggle + Logo -->
@@ -31,14 +31,14 @@
             </v-chip>
           </v-btn>
 
-          <NuxtLink to="/" class="d-flex align-center text-decoration-none ml-1" style="gap: 0.45rem; min-width: 0;">
+          <NuxtLink to="/" class="d-flex align-center text-decoration-none ml-1 brand-link">
             <img
-              src="/logo-talkiz-icon.svg?v=4"
+              src="/logo-talkiz-icon.svg?v=6"
               alt="Talkiz.yt"
               class="brand-icon flex-shrink-0"
             />
             <span class="brand-wordmark" :class="{ 'd-none d-sm-inline': authStore.isAuthenticated }">
-              Talkiz<span style="color: #FF0000;">.yt</span>
+              Talkiz<span class="brand-tld">.yt</span>
             </span>
           </NuxtLink>
         </div>
@@ -51,13 +51,14 @@
             :disabled="signingInGoogle"
             @click="signInWithGoogleHeader"
           >
-            <svg width="17" height="17" viewBox="0 0 24 24" class="mr-2 flex-shrink-0">
+            <svg width="17" height="17" viewBox="0 0 24 24" class="header-google-icon flex-shrink-0">
               <path fill="#EA4335" d="M12 5.04c1.94 0 3.51.68 4.75 1.81l3.51-3.51C18.14 1.38 15.34 0 12 0 7.31 0 3.25 2.69 1.28 6.6l4.09 3.17C6.34 6.91 8.94 5.04 12 5.04z"/>
               <path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.54-.19-2.27H12v4.51h6.47c-.29 1.48-1.14 2.73-2.4 3.58l3.87 3c2.26-2.09 3.55-5.17 3.55-8.82z"/>
               <path fill="#FBBC05" d="M5.37 14.23a7.17 7.17 0 0 1 0-4.46L1.28 6.6a11.98 11.98 0 0 0 0 10.8l4.09-3.17z"/>
               <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.87-3c-1.08.72-2.45 1.16-4.06 1.16-3.06 0-5.66-1.87-6.63-4.52l-4.09 3.17C3.25 21.31 7.31 24 12 24z"/>
             </svg>
-            <span>{{ t('nav.signInGoogle') }}</span>
+            <span class="header-google-label-full">{{ t('nav.signInGoogle') }}</span>
+            <span class="header-google-label-short">Sign in</span>
           </button>
         </div>
 
@@ -124,7 +125,7 @@
     <!-- Account Dialog -->
     <AccountDialog v-if="authStore.isAuthenticated" v-model="showAccountDialog" />
 
-    <v-main class="d-flex flex-column" style="background: #f8fafc; min-height: 100vh;">
+    <v-main class="d-flex flex-column" style="background: #E6DAF5; min-height: 100vh;">
       <div class="flex-grow-1">
         <slot />
       </div>
@@ -233,24 +234,40 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+.brand-link {
+  gap: 0.5rem;
+  min-width: 0;
+}
+
 .brand-icon {
-  height: 2rem;
-  width: 2rem;
-  border-radius: 50%;
+  height: 34px;
+  width: 34px;
+  background-color: #FF0000;
+  border-radius: 0.65rem;
+  padding: 4px;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
 }
 
 .brand-wordmark {
-  font-size: 1.25rem;
-  line-height: 1.5rem;
+  font-size: 1.5rem;
+  line-height: 1.75rem;
   font-weight: 700;
-  color: #2196F3;
+  color: #3b82f6;
   letter-spacing: -0.025em;
   white-space: nowrap;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+.brand-tld {
+  color: #DC2626;
 }
 
 .legal-footer {
   border-top: 1px solid #e2e8f0;
   background: #ffffff;
+  padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
 .legal-link {
@@ -268,6 +285,7 @@ onUnmounted(() => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 8px;
   height: 36px;
   padding: 0 14px;
   border-radius: 10px;
@@ -281,6 +299,10 @@ onUnmounted(() => {
   transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
+.header-google-label-short {
+  display: none;
+}
+
 .header-google-btn:hover:not(:disabled) {
   background: #f8fafc;
   border-color: #94a3b8;
@@ -292,15 +314,42 @@ onUnmounted(() => {
   cursor: not-allowed;
 }
 
-@media (min-width: 600px) {
-  .brand-icon {
-    height: 2.1rem;
-    width: 2.1rem;
+@media (max-width: 420px) {
+  .header-google-btn {
+    height: 34px;
+    padding: 0 10px;
+    font-size: 0.8rem;
+    gap: 6px;
+  }
+
+  .header-google-label-full {
+    display: none;
+  }
+
+  .header-google-label-short {
+    display: inline;
   }
 
   .brand-wordmark {
-    font-size: 1.5rem;
-    line-height: 1.8rem;
+    font-size: 1.15rem;
+  }
+}
+
+@media (min-width: 600px) {
+  .brand-link {
+    gap: 0.75rem;
+  }
+
+  .brand-icon {
+    height: 2.5rem;
+    width: 2.5rem;
+    border-radius: 0.75rem;
+    padding: 5px;
+  }
+
+  .brand-wordmark {
+    font-size: 2.25rem;
+    line-height: 2.5rem;
   }
 }
 </style>

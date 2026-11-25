@@ -2,8 +2,8 @@
   <v-navigation-drawer
     v-model="drawerModel"
     temporary
-    width="330"
-    style="border-right: 1px solid #e2e8f0;"
+    :width="drawerWidth"
+    style="border-right: 1px solid #e2e8f0; max-width: 88vw;"
   >
     <!-- Header -->
     <div class="d-flex align-center justify-space-between px-4 py-3" style="border-bottom: 1px solid #e2e8f0;">
@@ -122,8 +122,12 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { useDisplay } from 'vuetify'
 import { useVideosStore } from '../../../stores/videos'
 import { useAuthStore } from '../../../stores/auth'
+
+const { xs } = useDisplay()
+const drawerWidth = computed(() => (xs.value ? 300 : 340))
 
 const videosStore = useVideosStore()
 const authStore = useAuthStore()

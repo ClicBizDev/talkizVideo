@@ -15,7 +15,7 @@ export default defineNuxtConfig({
                 { name: 'description', content: 'Talk to any YouTube video with Talkiz Video AI' }
             ],
             link: [
-                { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg?v=4' },
+                { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg?v=5' },
             ]
         }
     },
