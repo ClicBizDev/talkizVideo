@@ -1,10 +1,10 @@
 <template>
   <div class="d-flex flex-column align-center px-4 py-8" style="max-width: 980px; margin: 0 auto;">
     <!-- Back link -->
-    <div class="w-100 d-flex align-center justify-space-between mb-6">
+    <div class="w-100 d-flex align-center justify-space-between mb-6 flex-wrap ga-2">
       <v-btn variant="text" color="grey-darken-2" class="text-none" to="/">
         <v-icon start>mdi-arrow-left</v-icon>
-        Retour à mes vidéos
+        {{ t('billing.backToVideos') }}
       </v-btn>
 
       <v-chip
@@ -13,17 +13,17 @@
         class="font-weight-bold"
       >
         <v-icon start size="16">mdi-timer-outline</v-icon>
-        Solde actuel : {{ authStore.formattedCredits }} crédits (min)
+        {{ t('billing.currentBalance', { credits: authStore.formattedCredits }) }}
       </v-chip>
     </div>
 
     <!-- Header -->
     <div class="text-center mb-8" style="max-width: 600px;">
       <h1 class="text-h4 font-weight-bold mb-2" style="color: #0f172a;">
-        Recharger vos crédits Talkiz Video
+        {{ t('billing.title') }}
       </h1>
       <p class="text-body-1 text-grey-darken-1">
-        <strong>1 crédit = 1 minute</strong> de conversation vocale avec vos vidéos YouTube. Paiement sécurisé par Stripe.
+        <strong>{{ t('billing.subtitleStrong') }}</strong>{{ t('billing.subtitleAfter') }}
       </p>
     </div>
 
@@ -57,7 +57,7 @@
             size="small"
             class="text-white font-weight-bold mb-3 align-self-start"
           >
-            Le plus populaire
+            {{ t('billing.popular') }}
           </v-chip>
 
           <div class="text-h6 font-weight-bold mb-1" style="color: #0f172a;">
@@ -69,11 +69,11 @@
 
           <div class="d-flex align-baseline mb-1">
             <span class="text-h3 font-weight-bold" style="color: #0f172a;">{{ plan.price }}</span>
-            <span class="text-body-2 text-grey-darken-1 ml-1">{{ plan.period }}</span>
+            <span class="text-body-2 text-grey-darken-1 ml-1">{{ t('billing.oneTime') }}</span>
           </div>
 
           <div class="text-subtitle-2 font-weight-bold mb-5" style="color: #2196F3;">
-            {{ plan.credits }} crédits ({{ plan.credits }} minutes)
+            {{ t('billing.creditsLine', { credits: plan.credits }) }}
           </div>
 
           <v-divider class="mb-4" />
@@ -95,21 +95,21 @@
             @click="startStripeCheckout(plan)"
           >
             <v-icon start size="18">mdi-lock-outline</v-icon>
-            Choisir {{ plan.name }}
+            {{ t('billing.choosePlan', { name: plan.name }) }}
           </v-btn>
         </v-card>
       </v-col>
     </v-row>
 
-    <div class="text-caption text-grey mt-8 d-flex align-center ga-2">
+    <div class="text-caption text-grey mt-8 d-flex align-center ga-2 text-center">
       <v-icon size="16">mdi-shield-check-outline</v-icon>
-      Paiement 100% sécurisé via Stripe • Vos crédits sont ajoutés automatiquement à votre compte.
+      {{ t('billing.securityFooter') }}
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useAuthStore } from '../../stores/auth'
 
 definePageMeta({
@@ -118,65 +118,67 @@ definePageMeta({
 
 const config = useRuntimeConfig()
 const authStore = useAuthStore()
+const { t } = useI18n()
 const stripeNotice = ref('')
 
-const plans = [
+const plans = computed(() => [
   {
     id: 'starter',
-    name: 'Starter',
-    tagline: 'Idéal pour découvrir et analyser vos premières vidéos',
-    price: '9€',
-    period: 'paiement unique',
+    name: t('billing.plans.starter.name'),
+    tagline: t('billing.plans.starter.tagline'),
+    price: '€9',
     credits: 30,
     popular: false,
     stripeLinkKey: 'STRIPE_LINK_STARTER',
     features: [
-      '30 crédits = 30 minutes vocales',
-      'Analyse audio + visuelle YouTube',
-      'Bibliothèque vidéo 100% privée',
-      'Historique de vos vidéos',
+      '30 credits = 30 voice minutes',
+      'YouTube audio + visual analysis',
+      '100% private video library',
+      'Full history of your videos',
     ],
   },
   {
     id: 'standard',
-    name: 'Standard',
-    tagline: 'Pour les créateurs, étudiants et veille quotidienne',
-    price: '19€',
-    period: 'paiement unique',
+    name: t('billing.plans.standard.name'),
+    tagline: t('billing.plans.standard.tagline'),
+    price: '€19',
     credits: 100,
     popular: true,
     stripeLinkKey: 'STRIPE_LINK_STANDARD',
     features: [
-      '100 crédits = 100 minutes vocales',
-      'Vidéos longues prises en charge',
-      'Bibliothèque vidéo 100% privée',
-      'Priorité sur l’analyse vidéo',
+      '100 credits = 100 voice minutes',
+      'Long videos supported',
+      '100% private video library',
+      'Priority video analysis',
     ],
   },
   {
     id: 'pro',
-    name: 'Pro',
-    tagline: 'Pour un usage intensif et professionnel',
-    price: '49€',
-    period: 'paiement unique',
+    name: t('billing.plans.pro.name'),
+    tagline: t('billing.plans.pro.tagline'),
+    price: '€49',
     credits: 350,
     popular: false,
     stripeLinkKey: 'STRIPE_LINK_PRO',
     features: [
-      '350 crédits = 350 minutes vocales',
-      'Vidéos illimitées dans votre bibliothèque',
-      'Accès privé et sécurisé',
-      'Support prioritaire',
+      '350 credits = 350 voice minutes',
+      'Unlimited videos in your library',
+      'Private and secure access',
+      'Priority support',
     ],
   },
-]
+])
 
 const startStripeCheckout = (plan) => {
   stripeNotice.value = ''
   const rawLink = config.public[plan.stripeLinkKey]
 
   if (!rawLink) {
-    stripeNotice.value = `Le lien Stripe pour la formule "${plan.name}" (${plan.credits} crédits) n'est pas encore configuré dans .env (NUXT_PUBLIC_${plan.stripeLinkKey}).`
+    stripeNotice.value = t('billing.stripeNotConfigured', {
+      name: plan.name,
+      credits: plan.credits,
+      key: plan.stripeLinkKey,
+    })
     return
   }
 

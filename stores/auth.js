@@ -11,7 +11,7 @@ export const useAuthStore = defineStore('auth', {
         provider: '',
         clientActive: true,
         creditBudget: null, // 1 crédit = 1 minute
-        planName: 'Gratuit',
+        planName: 'Free',
         isRefreshingCredits: false,
         profileReady: false,
     }),
@@ -108,9 +108,9 @@ export const useAuthStore = defineStore('auth', {
                         } else if (this.creditBudget >= 60) {
                             this.planName = 'Standard'
                         } else if (this.creditBudget > 0) {
-                            this.planName = 'Starter / Gratuit'
+                            this.planName = 'Starter / Free'
                         } else {
-                            this.planName = 'Crédits épuisés'
+                            this.planName = 'Out of credits'
                         }
                     }
                 } catch (err) {
@@ -128,7 +128,7 @@ export const useAuthStore = defineStore('auth', {
                 this.provider = ''
                 this.clientActive = true
                 this.creditBudget = null
-                this.planName = 'Gratuit'
+                this.planName = 'Free'
                 this.profileReady = false
                 setAccessToken('')
             },

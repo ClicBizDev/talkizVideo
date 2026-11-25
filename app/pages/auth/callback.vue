@@ -15,7 +15,8 @@ definePageMeta({
 
 const supabase = useSupabaseClient()
 const authStore = useAuthStore()
-const statusText = ref('Finalisation de la connexion...')
+const { t } = useI18n()
+const statusText = ref(t('callback.finalizing'))
 
 let authSubscription = null
 let fallbackTimer = null
@@ -59,7 +60,7 @@ onMounted(async () => {
       if (retryData?.session) {
         await completeLogin(retryData.session)
       } else {
-        statusText.value = 'Impossible de finaliser la connexion. Redirection...'
+        statusText.value = t('callback.failed')
         setTimeout(() => navigateTo('/login'), 1000)
       }
     }, 3500)

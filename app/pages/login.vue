@@ -18,10 +18,10 @@
 
       <!-- Heading (OpusClip-inspired layout) -->
       <h1 class="login-title text-center mb-2">
-        Connectez-vous pour discuter avec vos vidéos YouTube
+        {{ t('login.title') }}
       </h1>
       <p class="login-subtitle text-center mb-6">
-        Forfait gratuit disponible. Aucune carte de crédit requise.
+        {{ t('login.subtitle') }}
       </p>
 
       <!-- Feedback alerts -->
@@ -57,7 +57,7 @@
           <path fill="#FBBC05" d="M5.37 14.23a7.17 7.17 0 0 1 0-4.46L1.28 6.6a11.98 11.98 0 0 0 0 10.8l4.09-3.17z"/>
           <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.87-3c-1.08.72-2.45 1.16-4.06 1.16-3.06 0-5.66-1.87-6.63-4.52l-4.09 3.17C3.25 21.31 7.31 24 12 24z"/>
         </svg>
-        <span>{{ loadingGoogle ? 'Redirection vers Google...' : 'Continuer avec Google' }}</span>
+        <span>{{ loadingGoogle ? t('login.redirectingGoogle') : t('login.continueGoogle') }}</span>
       </button>
 
       <!-- Apple OAuth button (ready for when Apple provider is enabled in Supabase) -->
@@ -68,12 +68,12 @@
         @click="loginWithApple"
       >
         <v-icon size="22" color="white" class="mr-3">mdi-apple</v-icon>
-        <span>Continuer avec Apple</span>
+        <span>{{ t('login.continueApple') }}</span>
       </button>
 
       <!-- Separator -->
       <div class="divider-row mb-5">
-        <span>ou continuez avec l'e-mail</span>
+        <span>{{ t('login.orEmail') }}</span>
       </div>
 
       <!-- Email input + button -->
@@ -82,7 +82,7 @@
           v-model="email"
           type="email"
           required
-          placeholder="Entrez votre adresse e-mail"
+          :placeholder="t('login.emailPlaceholder')"
           class="dark-input mb-3"
         />
 
@@ -91,7 +91,7 @@
           v-model="password"
           type="password"
           required
-          placeholder="Mot de passe"
+          :placeholder="t('login.passwordPlaceholder')"
           class="dark-input mb-3"
         />
 
@@ -100,7 +100,7 @@
           class="email-submit-btn"
           :disabled="loadingEmail"
         >
-          {{ loadingEmail ? 'Connexion...' : (usePasswordMode ? 'Se connecter' : "Continuer avec l'e-mail") }}
+          {{ loadingEmail ? t('login.signingIn') : (usePasswordMode ? t('login.signIn') : t('login.continueEmail')) }}
         </button>
       </form>
 
@@ -110,19 +110,20 @@
           class="mode-toggle-link"
           @click="usePasswordMode = !usePasswordMode"
         >
-          {{ usePasswordMode ? 'Recevoir un lien magique par e-mail' : 'Se connecter avec un mot de passe' }}
+          {{ usePasswordMode ? t('login.useMagicLink') : t('login.usePassword') }}
         </button>
       </div>
 
       <!-- Legal footer -->
       <p class="legal-note text-center mt-6 mb-2">
-        En continuant, vous acceptez les
-        <NuxtLink to="/cgu" class="legal-inline-link">Conditions d'utilisation</NuxtLink>,
-        la <NuxtLink to="/confidentialite" class="legal-inline-link">Politique de confidentialité</NuxtLink>
-        et les <NuxtLink to="/mentions-legales" class="legal-inline-link">Mentions légales</NuxtLink>.
+        {{ t('login.legalPrefix') }}
+        <NuxtLink to="/cgu" class="legal-inline-link">{{ t('login.legalTerms') }}</NuxtLink>,
+        <NuxtLink to="/confidentialite" class="legal-inline-link">{{ t('login.legalPrivacy') }}</NuxtLink>
+        {{ t('login.legalAnd') }}
+        <NuxtLink to="/mentions-legales" class="legal-inline-link">{{ t('login.legalNotice') }}</NuxtLink>.
       </p>
       <p class="legal-note text-center mb-0" style="font-size: 0.7rem; opacity: 0.8;">
-        Talkiz Video est un service indépendant, non affilié, non sponsorisé et non approuvé par YouTube ou Google LLC. YouTube est une marque déposée de Google LLC.
+        {{ t('footer.disclaimer') }}
       </p>
     </div>
   </div>
@@ -138,6 +139,7 @@ definePageMeta({
 
 const supabase = useSupabaseClient()
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 const email = ref('')
 const password = ref('')
@@ -170,7 +172,7 @@ const loginWithGoogle = async () => {
       loadingGoogle.value = false
     }
   } catch (err) {
-    errorMsg.value = err?.message || 'Erreur lors de la connexion Google.'
+    errorMsg.value = err?.message || t('login.errorGoogle')
     loadingGoogle.value = false
   }
 }
@@ -185,11 +187,11 @@ const loginWithApple = async () => {
       options: { redirectTo },
     })
     if (error) {
-      errorMsg.value = 'La connexion Apple sera disponible prochainement. Utilisez Google ou votre e-mail.'
+      errorMsg.value = t('login.appleComingSoon')
       loadingApple.value = false
     }
   } catch {
-    errorMsg.value = 'La connexion Apple sera disponible prochainement.'
+    errorMsg.value = t('login.appleComingSoon')
     loadingApple.value = false
   }
 }
@@ -216,10 +218,10 @@ const loginWithEmail = async () => {
         options: { emailRedirectTo: redirectTo },
       })
       if (error) throw error
-      successMsg.value = 'Un lien de connexion vient d’être envoyé à votre adresse e-mail.'
+      successMsg.value = t('login.magicLinkSent')
     }
   } catch (err) {
-    errorMsg.value = err?.message || 'Erreur lors de la connexion.'
+    errorMsg.value = err?.message || t('login.errorGeneric')
   } finally {
     loadingEmail.value = false
   }

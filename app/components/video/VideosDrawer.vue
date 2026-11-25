@@ -9,7 +9,7 @@
     <div class="d-flex align-center justify-space-between px-4 py-3" style="border-bottom: 1px solid #e2e8f0;">
       <div class="d-flex align-center ga-2">
         <v-icon color="primary" size="22">mdi-play-box-multiple-outline</v-icon>
-        <span class="text-subtitle-1 font-weight-bold">Mes vidéos</span>
+        <span class="text-subtitle-1 font-weight-bold">{{ t('drawer.title') }}</span>
         <v-chip size="x-small" color="primary" variant="tonal" class="font-weight-bold">
           {{ videosStore.videos.length }}
         </v-chip>
@@ -20,7 +20,7 @@
           size="small"
           variant="text"
           :loading="videosStore.loadingList"
-          title="Actualiser"
+          :title="t('common.refresh')"
           @click="refresh"
         >
           <v-icon size="20">mdi-refresh</v-icon>
@@ -29,7 +29,7 @@
           icon
           size="small"
           variant="text"
-          title="Fermer"
+          :title="t('common.close')"
           @click="drawerModel = false"
         >
           <v-icon size="20">mdi-close</v-icon>
@@ -41,7 +41,7 @@
     <div class="pa-3">
       <v-text-field
         v-model="searchQuery"
-        placeholder="Rechercher une vidéo..."
+        :placeholder="t('drawer.searchPlaceholder')"
         prepend-inner-icon="mdi-magnify"
         variant="outlined"
         density="compact"
@@ -60,7 +60,7 @@
     <div v-else-if="filteredVideos.length === 0" class="pa-6 text-center text-grey">
       <v-icon size="40" color="grey-lighten-1" class="mb-2">mdi-video-off-outline</v-icon>
       <div class="text-body-2">
-        {{ searchQuery ? 'Aucune vidéo trouvée' : 'Aucune vidéo ajoutée pour le moment' }}
+        {{ searchQuery ? t('drawer.emptySearch') : t('drawer.emptyList') }}
       </div>
     </div>
 
@@ -80,7 +80,7 @@
         </template>
 
         <v-list-item-title class="text-body-2 font-weight-medium text-truncate">
-          {{ video.proj_youtube_title || video.proj_name || 'Vidéo YouTube' }}
+          {{ video.proj_youtube_title || video.proj_name || t('drawer.defaultVideoTitle') }}
         </v-list-item-title>
 
         <template #append>
@@ -90,7 +90,7 @@
               size="x-small"
               variant="text"
               color="grey-darken-1"
-              title="Supprimer cette vidéo"
+              :title="t('drawer.deleteTooltip')"
               @click.stop="confirmDelete(video)"
             >
               <v-icon size="16" color="error">mdi-delete-outline</v-icon>
@@ -104,15 +104,15 @@
     <v-dialog v-model="deleteDialog" max-width="380">
       <v-card rounded="xl" class="pa-2">
         <v-card-title class="text-subtitle-1 font-weight-bold">
-          Supprimer cette vidéo ?
+          {{ t('drawer.deleteModalTitle') }}
         </v-card-title>
         <v-card-text class="text-body-2 text-grey-darken-1">
-          La vidéo <strong>{{ videoToDelete?.proj_youtube_title || videoToDelete?.proj_name }}</strong> sera définitivement supprimée de votre liste.
+          {{ t('drawer.deleteModalBodyBefore') }}<strong>{{ videoToDelete?.proj_youtube_title || videoToDelete?.proj_name }}</strong>{{ t('drawer.deleteModalBodyAfter') }}
         </v-card-text>
         <v-card-actions class="justify-end ga-2">
-          <v-btn variant="text" @click="deleteDialog = false">Annuler</v-btn>
+          <v-btn variant="text" @click="deleteDialog = false">{{ t('common.cancel') }}</v-btn>
           <v-btn color="error" variant="flat" :loading="deleting" @click="executeDelete">
-            Supprimer
+            {{ t('common.delete') }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -128,6 +128,7 @@ import { useAuthStore } from '../../../stores/auth'
 const videosStore = useVideosStore()
 const authStore = useAuthStore()
 const route = useRoute()
+const { t } = useI18n()
 
 const searchQuery = ref('')
 const deleteDialog = ref(false)

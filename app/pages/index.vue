@@ -7,7 +7,7 @@
           <input
             v-model="youtubeUrl"
             type="url"
-            placeholder="https://www.youtube.com/watch?v=..."
+            :placeholder="t('home.urlPlaceholder')"
             class="yt-input-field"
             :disabled="processing"
             @keyup.enter="handleAddVideo"
@@ -16,7 +16,7 @@
             v-if="youtubeUrl && !processing"
             type="button"
             class="yt-clear-btn"
-            title="Effacer"
+            :title="t('common.clear')"
             @click="clearInput"
           >
             ✕
@@ -30,7 +30,7 @@
           elevation="2"
           class="flex-shrink-0"
           :disabled="processing || !youtubeUrl.trim()"
-          title="Analyser cette vidéo YouTube"
+          :title="t('home.analyzeTooltip')"
           @click="handleAddVideo"
         >
           <v-icon color="white" size="24">mdi-plus</v-icon>
@@ -51,19 +51,15 @@
       </v-alert>
     </div>
 
-    <!-- 2. Processing State (matching screenshot 2) -->
+    <!-- 2. Processing State -->
     <div
       v-if="processing"
       class="d-flex flex-column align-center text-center mt-8 w-100"
       style="max-width: 520px;"
     >
-      <div class="text-body-2 text-grey-darken-1 mb-5">
-        You will be notified by email when the process is complete.
-      </div>
-
       <v-card class="pa-5 pa-sm-8 w-100 rounded-xl d-flex flex-column align-center" elevation="1" style="border: 1px solid #e2e8f0;">
         <div class="text-h6 font-weight-bold mb-5" style="letter-spacing: 0.04em; color: #0f172a;">
-          PROCESSING ...
+          {{ t('home.processingTitle') }}
         </div>
 
         <v-progress-circular
@@ -103,7 +99,7 @@
     <!-- Loading selected video from drawer -->
     <div v-else-if="videosStore.loadingActiveVideo" class="d-flex flex-column align-center justify-center mt-12">
       <v-progress-circular indeterminate color="#2196F3" size="44" width="4" />
-      <div class="text-caption text-grey-darken-1 mt-3">Chargement du player...</div>
+      <div class="text-caption text-grey-darken-1 mt-3">{{ t('home.loadingPlayer') }}</div>
     </div>
 
     <!-- 3. Active Video Player directly underneath the URL bar -->
@@ -121,12 +117,12 @@
         <v-icon size="38" color="#2196F3">mdi-play-circle-outline</v-icon>
       </v-avatar>
       <h1 class="text-h6 font-weight-bold mb-2" style="color: #0f172a;">
-        Discutez à la voix avec une vidéo YouTube
+        {{ t('home.welcomeTitle') }}
       </h1>
       <p class="text-body-2 text-grey-darken-1 mb-5" style="line-height: 1.55;">
-        Collez le lien d'une vidéo YouTube publique ci-dessus et cliquez sur
+        {{ t('home.welcomeSubtitleBefore') }}
         <span class="inline-plus-btn" aria-hidden="true">+</span>.<br />
-        Talkiz génère votre assistant vocal interactif pour répondre à toutes vos questions.
+        {{ t('home.welcomeSubtitleAfter') }}
       </p>
       <v-btn
         v-if="videosStore.videos.length > 0"
@@ -137,7 +133,9 @@
         @click="videosStore.drawerOpen = true"
       >
         <v-icon start>mdi-playlist-play</v-icon>
-        Voir mes {{ videosStore.videos.length }} vidéo{{ videosStore.videos.length > 1 ? 's' : '' }}
+        {{ videosStore.videos.length > 1
+          ? t('home.viewMyVideosPlural', { count: videosStore.videos.length })
+          : t('home.viewMyVideos', { count: videosStore.videos.length }) }}
       </v-btn>
     </div>
   </div>
@@ -157,6 +155,7 @@ definePageMeta({
 const supabase = useSupabaseClient()
 const authStore = useAuthStore()
 const videosStore = useVideosStore()
+const { t } = useI18n()
 
 const youtubeUrl = ref('')
 const errorMsg = ref('')
@@ -230,14 +229,14 @@ const waitForYoutubeTask = async (taskId) => {
       }
     } catch (pollErr) {
       if (pollErr.response?.status === 404) {
-        throw new Error('La tâche a expiré ou le serveur a redémarré. Veuillez réessayer.')
+        throw new Error(t('home.errors.taskExpired'))
       }
       if (!pollErr.response && pollErr.message && !/network|timeout|fetch/i.test(pollErr.message)) {
         throw pollErr
       }
       consecutiveErrors++
       if (consecutiveErrors >= 6) {
-        throw new Error('Connexion perdue pendant l’analyse de la vidéo YouTube.')
+        throw new Error(t('home.errors.connectionLost'))
       }
     }
   }
@@ -250,7 +249,7 @@ const handleAddVideo = async () => {
 
   let ytUrl = youtubeUrl.value.trim()
   if (!ytUrl) {
-    errorMsg.value = 'Veuillez coller une URL YouTube.'
+    errorMsg.value = t('home.errors.emptyUrl')
     return
   }
   if (!ytUrl.startsWith('http://') && !ytUrl.startsWith('https://')) {
@@ -258,20 +257,20 @@ const handleAddVideo = async () => {
     youtubeUrl.value = ytUrl
   }
   if (!videoService.isValidYoutubeUrl(ytUrl)) {
-    errorMsg.value = 'URL YouTube invalide. Exemple : https://www.youtube.com/watch?v=...'
+    errorMsg.value = t('home.errors.invalidUrl')
     return
   }
 
   const clientUid = authStore.clientUid
   if (!clientUid) {
-    errorMsg.value = 'Session expirée. Veuillez vous reconnecter.'
+    errorMsg.value = t('home.errors.sessionExpired')
     return
   }
 
   processing.value = true
   processingUrl.value = ytUrl
-  processingPhase.value = 'Creating YouTube commentator profile...'
-  processingSubDetail.value = 'Configuring GPT-Live voice & video commentator rules'
+  processingPhase.value = t('home.phases.creatingProfile')
+  processingSubDetail.value = t('home.phases.configuringRules')
   startTimer()
 
   const lang = getBrowserLanguage()
@@ -286,15 +285,15 @@ const handleAddVideo = async () => {
     })
 
     if (!createRes?.success || !createRes?.results?.proj_uid) {
-      throw new Error('Erreur lors de la création du projet vidéo.')
+      throw new Error(t('home.errors.createProjectFailed'))
     }
 
     const projUid = createRes.results.proj_uid
     createdProjUid = projUid
 
     // 2. Launch async multimodal YouTube analysis (includes backend EMBED_DISABLED pre-flight check)
-    processingPhase.value = 'Connecting to YouTube & fetching video metadata...'
-    processingSubDetail.value = 'Checking video duration & preparing multimodal analysis'
+    processingPhase.value = t('home.phases.connectingYoutube')
+    processingSubDetail.value = t('home.phases.checkingDuration')
 
     const ytRes = await videoService.startYoutubeAnalysis({
       projectUid: projUid,
@@ -309,22 +308,9 @@ const handleAddVideo = async () => {
 
     const sourceLabel = ytFinalResult?.sourceName || ytUrl
 
-    // 3. Send confirmation email (non-fatal)
-    processingPhase.value = 'Finalizing agent & loading player...'
-    processingSubDetail.value = `Agent ready for "${sourceLabel}"`
-    try {
-      await videoService.notifyComplete({
-        projectUid: projUid,
-        clientUid,
-        sourceLabel,
-        language: lang,
-        elapsedSec: Math.max(1, ytFinalResult?.elapsedSec || elapsedSec.value || 1),
-      })
-    } catch (emailErr) {
-      console.warn('Email notification skipped:', emailErr)
-    }
-
-    // 4. Refresh videos list & load the new player directly below the URL input
+    // 3. Refresh videos list & load the new player directly below the URL input
+    processingPhase.value = t('home.phases.finalizing')
+    processingSubDetail.value = t('home.phases.agentReady', { label: sourceLabel })
     stopTimers()
     processing.value = false
     processingSubDetail.value = ''
@@ -347,9 +333,9 @@ const handleAddVideo = async () => {
     }
 
     if (errCode === 'EMBED_DISABLED') {
-      errorMsg.value = "Le créateur de cette vidéo n'autorise pas son intégration sur des applications tierces. Talkiz Video respecte ce choix et ne peut pas analyser cette vidéo."
+      errorMsg.value = t('home.errors.embedDisabled')
     } else {
-      errorMsg.value = err?.response?.data?.message || err?.message || 'Erreur lors du traitement de la vidéo YouTube.'
+      errorMsg.value = err?.response?.data?.message || err?.message || t('home.errors.genericProcessing')
     }
   }
 }

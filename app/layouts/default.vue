@@ -19,7 +19,7 @@
             @click="toggleVideosDrawer"
           >
             <v-icon size="18" class="mr-sm-1">mdi-playlist-play</v-icon>
-            <span class="d-none d-sm-inline">Mes vidéos</span>
+            <span class="d-none d-sm-inline">{{ t('nav.myVideos') }}</span>
             <v-chip
               v-if="videosStore.videos.length > 0"
               size="x-small"
@@ -48,14 +48,14 @@
 
         <!-- Right: Credits counter + Recharge + Account icon -->
         <div v-if="authStore.isAuthenticated" class="d-flex align-center ga-1 ga-sm-2 flex-shrink-0">
-          <!-- Credit counter (1 crédit = 1 minute) -->
+          <!-- Credit counter (1 credit = 1 minute) -->
           <div class="d-flex align-center rounded-pill px-2 py-1" style="background: #f1f5f9; border: 1px solid #e2e8f0;">
-            <v-tooltip text="1 crédit = 1 minute de conversation vocale" location="bottom">
+            <v-tooltip :text="t('nav.creditsTooltip')" location="bottom">
               <template #activator="{ props: tooltipProps }">
                 <div v-bind="tooltipProps" class="d-flex align-center ga-1 px-1">
                   <v-icon size="15" :color="creditIconColor">mdi-timer-outline</v-icon>
                   <span class="text-caption font-weight-bold text-no-wrap" :style="{ color: creditTextColor }">
-                    {{ authStore.formattedCredits }}<span class="d-none d-sm-inline"> min</span>
+                    {{ authStore.formattedCredits }}<span class="d-none d-sm-inline"> {{ t('common.min') }}</span>
                   </span>
                 </div>
               </template>
@@ -68,7 +68,7 @@
               color="grey-darken-1"
               class="d-none d-sm-inline-flex"
               :loading="authStore.isRefreshingCredits"
-              title="Rafraîchir les crédits"
+              :title="t('nav.refreshCredits')"
               @click="refreshCredits"
             >
               <v-icon size="15">mdi-refresh</v-icon>
@@ -82,7 +82,7 @@
               class="text-none font-weight-bold ml-1 px-2"
               to="/billing"
             >
-              {{ !authStore.hasCredits ? 'Recharger' : '+' }}
+              {{ !authStore.hasCredits ? t('nav.recharge') : '+' }}
             </v-btn>
           </div>
 
@@ -91,7 +91,7 @@
             icon
             size="small"
             variant="text"
-            title="Mon compte"
+            :title="t('nav.myAccount')"
             @click="showAccountDialog = true"
           >
             <v-avatar size="32" color="primary">
@@ -117,16 +117,16 @@
       <!-- Legal Footer -->
       <footer class="legal-footer px-4 py-4 text-center">
         <div class="d-flex flex-wrap justify-center align-center ga-2 text-caption" style="color: #64748b;">
-          <span>&copy; 2026 Talkiz.ai — 1 crédit = 1 minute</span>
+          <span>{{ t('footer.copyright') }}</span>
           <span class="d-none d-sm-inline">&bull;</span>
           <div class="d-flex flex-wrap justify-center align-center ga-3">
-            <NuxtLink to="/cgu" class="legal-link">CGU</NuxtLink>
-            <NuxtLink to="/confidentialite" class="legal-link">Confidentialité</NuxtLink>
-            <NuxtLink to="/mentions-legales" class="legal-link">Mentions légales</NuxtLink>
+            <NuxtLink to="/cgu" class="legal-link">{{ t('footer.terms') }}</NuxtLink>
+            <NuxtLink to="/confidentialite" class="legal-link">{{ t('footer.privacy') }}</NuxtLink>
+            <NuxtLink to="/mentions-legales" class="legal-link">{{ t('footer.legal') }}</NuxtLink>
           </div>
         </div>
         <div class="mt-2 mx-auto" style="font-size: 11px; color: #94a3b8; max-width: 720px; line-height: 1.45;">
-          Talkiz Video est un service indépendant, non affilié, non sponsorisé et non approuvé par YouTube ou Google LLC. YouTube est une marque déposée de Google LLC.
+          {{ t('footer.disclaimer') }}
         </div>
       </footer>
     </v-main>
@@ -144,6 +144,7 @@ import AccountDialog from '../components/video/AccountDialog.vue'
 const supabase = useSupabaseClient()
 const authStore = useAuthStore()
 const videosStore = useVideosStore()
+const { t } = useI18n()
 
 const showAccountDialog = ref(false)
 

@@ -39,7 +39,7 @@
           >
             <v-icon color="warning" size="28" class="mb-2">mdi-block-helper</v-icon>
             <div class="text-caption mb-3" style="max-width: 340px; color: rgba(255,255,255,0.95); line-height: 1.45;">
-              Le créateur de cette vidéo n'autorise pas son intégration sur des applications tierces. Talkiz Video respecte ce choix et ne peut pas analyser cette vidéo.
+              {{ t('player.embedDisabledNotice') }}
             </div>
             <v-btn
               :href="youtubeWatchUrl"
@@ -52,7 +52,7 @@
               class="text-none font-weight-bold text-black px-4"
             >
               <v-icon start size="18">mdi-open-in-new</v-icon>
-              Regarder sur YouTube
+              {{ t('player.watchOnYoutube') }}
             </v-btn>
           </div>
         </div>
@@ -66,7 +66,7 @@
           </span>
         </div>
         <div class="d-flex align-center flex-shrink-0">
-          <v-tooltip text="Regarder sur YouTube" location="top">
+          <v-tooltip :text="t('player.watchOnYoutube')" location="top">
             <template #activator="{ props: tooltipProps }">
               <v-btn
                 v-bind="tooltipProps"
@@ -77,7 +77,7 @@
                 :href="youtubeWatchUrl"
                 target="_blank"
                 rel="noopener noreferrer"
-                aria-label="Regarder sur YouTube"
+                :aria-label="t('player.watchOnYoutube')"
               >
                 <v-icon size="18">mdi-open-in-new</v-icon>
               </v-btn>
@@ -101,10 +101,10 @@
     >
       <v-icon color="error" size="36" class="mb-2">mdi-clock-alert-outline</v-icon>
       <div class="text-subtitle-1 font-weight-bold text-red-darken-2 mb-1">
-        Crédits épuisés (0 min restante)
+        {{ t('player.creditsDepletedTitle') }}
       </div>
       <div class="text-body-2 text-grey-darken-2 mb-4">
-        Rechargez votre compte pour continuer à discuter avec vos vidéos YouTube.
+        {{ t('player.creditsDepletedSubtitle') }}
       </div>
       <v-btn
         color="var(--talkizColorBtn)"
@@ -114,7 +114,7 @@
         to="/billing"
       >
         <v-icon start>mdi-lightning-bolt</v-icon>
-        Recharger mes crédits
+        {{ t('player.topUpCredits') }}
       </v-btn>
     </v-card>
 
@@ -140,7 +140,7 @@
           :textColor="project.proj_link_display_text_color || 'black'"
           :textCustom="project.proj_link_display_text_custom || '#000000'"
           :borderRadius="project.proj_link_border_radius || '12px'"
-          :invitationText="project.proj_link_invitation_text || 'Ou cliquez ici et je répondrai à vos questions !'"
+          :invitationText="project.proj_link_invitation_text || t('player.defaultInvitation')"
           :voiceType="project.proj_oart_voice_type"
           :voiceSpeed="project.proj_oart_voice_speed"
           :temperature="project.proj_oart_temperature"
@@ -159,30 +159,30 @@
         />
       </div>
 
-      <!-- Mention AI Act (visible en permanence sous la carte de l'assistant vocal) -->
+      <!-- AI Act Transparency Notice (permanently visible below the voice assistant card) -->
       <div
         class="d-flex align-start ga-2 mt-2 px-2 text-left w-100"
         style="font-size: 11.5px; color: #64748b; line-height: 1.45;"
       >
         <v-icon size="15" color="#64748b" class="mt-0 flex-shrink-0" style="margin-top: 2px;">mdi-information-outline</v-icon>
         <span>
-          Vous interagissez avec une intelligence artificielle. Les réponses peuvent contenir des inexactitudes : vérifiez toujours les informations importantes dans la vidéo d'origine.
+          {{ t('player.aiActNotice') }}
         </span>
       </div>
     </div>
 
-    <!-- Modale de consentement Microphone (RGPD) avant la 1re activation WebRTC / OpenAI -->
+    <!-- RGPD Microphone Consent Modal before first WebRTC / OpenAI activation -->
     <v-dialog v-model="showMicConsentDialog" max-width="440" persistent>
       <v-card rounded="xl" class="pa-3">
         <v-card-title class="d-flex align-center ga-2 text-subtitle-1 font-weight-bold pb-1">
           <v-avatar size="34" color="#eff6ff">
             <v-icon size="20" color="#2196F3">mdi-microphone-outline</v-icon>
           </v-avatar>
-          <span>Activation du microphone</span>
+          <span>{{ t('player.micConsent.title') }}</span>
         </v-card-title>
 
         <v-card-text class="text-body-2 text-grey-darken-2 pt-3 pb-2" style="line-height: 1.55;">
-          Pour répondre à vos questions à l'oral, votre flux vocal est transmis en temps réel à notre prestataire technique <strong>OpenAI</strong> (États-Unis, sans utilisation pour l'entraînement des modèles). Votre voix n'est pas enregistrée sous forme de fichier audio sur nos serveurs.
+          {{ t('player.micConsent.bodyBefore') }}<strong>{{ t('player.micConsent.bodyProvider') }}</strong>{{ t('player.micConsent.bodyAfter') }}
           <div class="mt-3">
             <NuxtLink
               to="/confidentialite"
@@ -190,7 +190,7 @@
               class="text-caption font-weight-medium"
               style="color: #2196F3; text-decoration: underline;"
             >
-              Consulter la Politique de confidentialité
+              {{ t('player.micConsent.privacyLink') }}
             </NuxtLink>
           </div>
         </v-card-text>
@@ -202,7 +202,7 @@
             class="text-none"
             @click="cancelMicConsent"
           >
-            Annuler
+            {{ t('common.cancel') }}
           </v-btn>
           <v-btn
             color="#2196F3"
@@ -212,7 +212,7 @@
             @click="acceptMicConsent"
           >
             <v-icon start size="18">mdi-microphone</v-icon>
-            Autoriser et parler
+            {{ t('player.micConsent.allowButton') }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -238,6 +238,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['conversation-ended'])
+const { t } = useI18n()
 
 const agentPlayer = ref(null)
 const youtubeIframe = ref(null)

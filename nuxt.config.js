@@ -29,6 +29,7 @@ export default defineNuxtConfig({
     supabase: {
         redirect: false,
         types: false,
+        useSsrCookies: false,
     },
 
     build: {

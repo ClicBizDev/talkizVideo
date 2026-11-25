@@ -3,7 +3,7 @@
     <v-card rounded="xl" class="pa-2">
       <!-- Header -->
       <v-card-title class="d-flex align-center justify-space-between pb-1">
-        <span class="text-h6 font-weight-bold">Mon compte</span>
+        <span class="text-h6 font-weight-bold">{{ t('account.title') }}</span>
         <v-btn icon variant="text" size="small" @click="dialogModel = false">
           <v-icon>mdi-close</v-icon>
         </v-btn>
@@ -18,7 +18,7 @@
           </v-avatar>
           <div style="min-width: 0;">
             <div class="text-subtitle-1 font-weight-bold text-truncate">
-              {{ authStore.fullName || 'Utilisateur Talkiz' }}
+              {{ authStore.fullName || t('account.defaultUser') }}
             </div>
             <div class="text-caption text-grey-darken-1 text-truncate">
               {{ authStore.clientEmail }}
@@ -27,7 +27,7 @@
               <v-icon start size="12">
                 {{ authStore.provider === 'google' ? 'mdi-google' : 'mdi-email-outline' }}
               </v-icon>
-              Connexion {{ authStore.provider || 'email' }}
+              {{ t('account.signInWith', { provider: authStore.provider || 'email' }) }}
             </v-chip>
           </div>
         </div>
@@ -38,8 +38,8 @@
             <template #prepend>
               <v-icon color="primary" class="mr-2">mdi-timer-outline</v-icon>
             </template>
-            <v-list-item-title class="text-body-2 font-weight-medium">Crédits restants</v-list-item-title>
-            <v-list-item-subtitle class="text-caption">1 crédit = 1 minute de conversation</v-list-item-subtitle>
+            <v-list-item-title class="text-body-2 font-weight-medium">{{ t('account.remainingCredits') }}</v-list-item-title>
+            <v-list-item-subtitle class="text-caption">{{ t('account.creditRate') }}</v-list-item-subtitle>
             <template #append>
               <v-chip
                 size="small"
@@ -47,7 +47,7 @@
                 variant="flat"
                 class="font-weight-bold"
               >
-                {{ authStore.formattedCredits }} min
+                {{ authStore.formattedCredits }} {{ t('common.min') }}
               </v-chip>
             </template>
           </v-list-item>
@@ -58,7 +58,7 @@
             <template #prepend>
               <v-icon color="amber-darken-2" class="mr-2">mdi-crown-outline</v-icon>
             </template>
-            <v-list-item-title class="text-body-2 font-weight-medium">Formule en cours</v-list-item-title>
+            <v-list-item-title class="text-body-2 font-weight-medium">{{ t('account.currentPlan') }}</v-list-item-title>
             <template #append>
               <span class="text-body-2 font-weight-bold text-grey-darken-3">{{ authStore.planName }}</span>
             </template>
@@ -70,7 +70,7 @@
             <template #prepend>
               <v-icon color="primary" class="mr-2">mdi-play-box-multiple-outline</v-icon>
             </template>
-            <v-list-item-title class="text-body-2 font-weight-medium">Vidéos analysées</v-list-item-title>
+            <v-list-item-title class="text-body-2 font-weight-medium">{{ t('account.analyzedVideos') }}</v-list-item-title>
             <template #append>
               <span class="text-body-2 font-weight-bold text-grey-darken-3">{{ videosStore.videos.length }}</span>
             </template>
@@ -88,7 +88,7 @@
           @click="goToBilling"
         >
           <v-icon start>mdi-credit-card-plus-outline</v-icon>
-          Recharger mes crédits / Formules
+          {{ t('account.topUpButton') }}
         </v-btn>
 
         <v-btn
@@ -101,17 +101,17 @@
           @click="handleLogout"
         >
           <v-icon start>mdi-logout</v-icon>
-          Se déconnecter
+          {{ t('account.signOut') }}
         </v-btn>
 
-        <!-- Zone de danger (RGPD — Droit à l'effacement) -->
+        <!-- Danger Zone (GDPR Right to Erasure) -->
         <div class="pa-3 rounded-lg" style="background: #fef2f2; border: 1px solid #fecaca;">
           <div class="text-caption font-weight-bold text-red-darken-2 mb-1 d-flex align-center ga-1">
             <v-icon size="15" color="error">mdi-alert-outline</v-icon>
-            Zone de danger
+            {{ t('account.dangerZone.title') }}
           </div>
           <div class="text-caption text-grey-darken-2 mb-3" style="line-height: 1.4;">
-            La suppression de votre compte efface définitivement toutes vos vidéos, notes et historiques de conversations.
+            {{ t('account.dangerZone.description') }}
           </div>
           <v-btn
             block
@@ -124,26 +124,26 @@
             @click="openDeleteConfirm"
           >
             <v-icon start size="17">mdi-delete-forever-outline</v-icon>
-            Supprimer mon compte et toutes mes données
+            {{ t('account.dangerZone.button') }}
           </v-btn>
         </div>
       </v-card-text>
     </v-card>
 
-    <!-- Modale de confirmation de suppression définitive -->
+    <!-- Permanent deletion confirmation modal -->
     <v-dialog v-model="showDeleteConfirm" max-width="430" persistent>
       <v-card rounded="xl" class="pa-3">
         <v-card-title class="d-flex align-center ga-2 text-subtitle-1 font-weight-bold text-red-darken-2 pb-1">
           <v-icon color="error">mdi-alert-circle-outline</v-icon>
-          <span>Suppression définitive du compte</span>
+          <span>{{ t('account.dangerZone.modalTitle') }}</span>
         </v-card-title>
 
         <v-card-text class="text-body-2 text-grey-darken-2 pt-3" style="line-height: 1.55;">
           <p class="mb-3">
-            Cette action est <strong>définitive et irréversible</strong>. Toutes vos vidéos analysées, notes associées, historiques de conversations et votre profil seront définitivement supprimés de nos serveurs.
+            {{ t('account.dangerZone.modalBody') }}
           </p>
           <v-alert type="warning" variant="tonal" density="compact" class="mb-3">
-            Vos crédits restants (<strong>{{ authStore.formattedCredits }} min</strong>) seront définitivement perdus et ne pourront pas être récupérés.
+            {{ t('account.dangerZone.creditsWarningBefore') }}<strong>{{ authStore.formattedCredits }} {{ t('common.min') }}</strong>{{ t('account.dangerZone.creditsWarningAfter') }}
           </v-alert>
           <v-alert v-if="deleteError" type="error" variant="tonal" density="compact">
             {{ deleteError }}
@@ -158,7 +158,7 @@
             :disabled="deletingAccount"
             @click="showDeleteConfirm = false"
           >
-            Annuler
+            {{ t('common.cancel') }}
           </v-btn>
           <v-btn
             color="error"
@@ -168,7 +168,7 @@
             :loading="deletingAccount"
             @click="executeAccountDeletion"
           >
-            Confirmer la suppression
+            {{ t('account.dangerZone.confirmButton') }}
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -194,6 +194,7 @@ const emit = defineEmits(['update:modelValue'])
 const supabase = useSupabaseClient()
 const authStore = useAuthStore()
 const videosStore = useVideosStore()
+const { t } = useI18n()
 
 const showDeleteConfirm = ref(false)
 const deletingAccount = ref(false)
@@ -258,7 +259,7 @@ const executeAccountDeletion = async () => {
     navigateTo('/login')
   } catch (err) {
     console.error('[AccountDialog] Account deletion error:', err)
-    deleteError.value = err?.response?.data?.message || err?.message || 'Impossible de supprimer le compte pour le moment.'
+    deleteError.value = err?.response?.data?.message || err?.message || t('account.dangerZone.errorGeneric')
   } finally {
     deletingAccount.value = false
   }

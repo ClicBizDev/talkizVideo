@@ -1,0 +1,202 @@
+export default {
+  common: {
+    back: 'Back',
+    cancel: 'Cancel',
+    close: 'Close',
+    delete: 'Delete',
+    refresh: 'Refresh',
+    clear: 'Clear',
+    min: 'min',
+    credits: 'credits',
+  },
+
+  nav: {
+    myVideos: 'My Videos',
+    creditsTooltip: '1 credit = 1 minute of voice conversation',
+    refreshCredits: 'Refresh credits',
+    recharge: 'Top up',
+    myAccount: 'My Account',
+  },
+
+  footer: {
+    copyright: '© 2026 Talkiz.ai — 1 credit = 1 minute',
+    terms: 'Terms',
+    privacy: 'Privacy',
+    legal: 'Legal Notice',
+    disclaimer:
+      'Talkiz Video is an independent service, not affiliated with, sponsored by, or endorsed by YouTube or Google LLC. YouTube is a registered trademark of Google LLC.',
+  },
+
+  home: {
+    urlPlaceholder: 'https://www.youtube.com/watch?v=...',
+    analyzeTooltip: 'Analyze this YouTube video',
+    emailNotify: 'You will be notified by email when the process is complete.',
+    processingTitle: 'PROCESSING ...',
+    loadingPlayer: 'Loading player...',
+    welcomeTitle: 'Have a voice chat with a YouTube video',
+    welcomeSubtitleBefore: 'Paste the link of a public YouTube video above and click',
+    welcomeSubtitleAfter: 'Talkiz generates your interactive voice assistant to answer all your questions.',
+    viewMyVideos: 'View my {{count}} video',
+    viewMyVideosPlural: 'View my {{count}} videos',
+    errors: {
+      emptyUrl: 'Please paste a YouTube URL.',
+      invalidUrl: 'Invalid YouTube URL. Example: https://www.youtube.com/watch?v=...',
+      sessionExpired: 'Session expired. Please sign in again.',
+      createProjectFailed: 'Error while creating the video project.',
+      taskExpired: 'The task expired or the server restarted. Please try again.',
+      connectionLost: 'Connection lost while analyzing the YouTube video.',
+      embedDisabled:
+        'The creator of this video does not allow embedding on third-party applications. Talkiz Video respects this choice and cannot analyze this video.',
+      genericProcessing: 'Error while processing the YouTube video.',
+    },
+    phases: {
+      creatingProfile: 'Creating YouTube commentator profile...',
+      configuringRules: 'Configuring GPT-Live voice & video commentator rules',
+      connectingYoutube: 'Connecting to YouTube & fetching video metadata...',
+      checkingDuration: 'Checking video duration & preparing multimodal analysis',
+      finalizing: 'Finalizing assistant & loading player...',
+      agentReady: 'Assistant ready for "{{label}}"',
+    },
+  },
+
+  player: {
+    watchOnYoutube: 'Watch on YouTube',
+    embedDisabledNotice:
+      'The creator of this video does not allow embedding on third-party applications. Talkiz Video respects this choice and cannot analyze this video.',
+    creditsDepletedTitle: 'Out of credits (0 min remaining)',
+    creditsDepletedSubtitle: 'Top up your account to continue talking with your YouTube videos.',
+    topUpCredits: 'Top up my credits',
+    defaultInvitation: 'Or click here and I will answer your questions!',
+    aiActNotice:
+      'You are interacting with an artificial intelligence. Responses may contain inaccuracies: always verify important information in the original video.',
+    micConsent: {
+      title: 'Microphone activation',
+      bodyBefore: 'To answer your spoken questions, your voice stream is transmitted in real time to our technical provider ',
+      bodyProvider: 'OpenAI',
+      bodyAfter:
+        ' (United States, not used for model training). Your voice is not recorded or stored as an audio file on our servers.',
+      privacyLink: 'Read our Privacy Policy',
+      allowButton: 'Allow & speak',
+    },
+  },
+
+  drawer: {
+    title: 'My Videos',
+    searchPlaceholder: 'Search a video...',
+    emptySearch: 'No videos found',
+    emptyList: 'No videos added yet',
+    defaultVideoTitle: 'YouTube Video',
+    deleteTooltip: 'Delete this video',
+    deleteModalTitle: 'Delete this video?',
+    deleteModalBodyBefore: 'The video ',
+    deleteModalBodyAfter: ' will be permanently removed from your library.',
+  },
+
+  account: {
+    title: 'My Account',
+    defaultUser: 'Talkiz User',
+    signInWith: '{{provider}} sign-in',
+    remainingCredits: 'Remaining credits',
+    creditRate: '1 credit = 1 minute of conversation',
+    currentPlan: 'Current plan',
+    analyzedVideos: 'Analyzed videos',
+    topUpButton: 'Top up credits / Plans',
+    signOut: 'Sign out',
+    plans: {
+      free: 'Free',
+      starter: 'Starter / Free',
+      standard: 'Standard',
+      pro: 'Pro',
+      depleted: 'Out of credits',
+    },
+    dangerZone: {
+      title: 'Danger zone',
+      description: 'Deleting your account permanently erases all your videos, notes, and conversation history.',
+      button: 'Delete my account and all my data',
+      modalTitle: 'Permanent account deletion',
+      modalBody:
+        'This action is permanent and irreversible. All your analyzed videos, associated notes, conversation history, and profile will be permanently deleted from our servers.',
+      creditsWarningBefore: 'Your remaining credits (',
+      creditsWarningAfter: ') will be permanently lost and cannot be recovered.',
+      confirmButton: 'Confirm deletion',
+      errorGeneric: 'Unable to delete your account right now.',
+    },
+  },
+
+  login: {
+    title: 'Sign in to talk with your YouTube videos',
+    subtitle: 'Free plan available. No credit card required.',
+    continueGoogle: 'Continue with Google',
+    redirectingGoogle: 'Redirecting to Google...',
+    continueApple: 'Continue with Apple',
+    appleComingSoon: 'Apple sign-in will be available soon. Please use Google or your email.',
+    orEmail: 'or continue with email',
+    emailPlaceholder: 'Enter your email address',
+    passwordPlaceholder: 'Password',
+    continueEmail: 'Continue with email',
+    signIn: 'Sign in',
+    signingIn: 'Signing in...',
+    useMagicLink: 'Receive a magic link by email',
+    usePassword: 'Sign in with a password',
+    magicLinkSent: 'A sign-in link has been sent to your email address.',
+    errorGoogle: 'Error during Google sign-in.',
+    errorGeneric: 'Error during sign-in.',
+    legalPrefix: 'By continuing, you agree to the',
+    legalTerms: 'Terms of Use',
+    legalPrivacy: 'Privacy Policy',
+    legalAnd: 'and',
+    legalNotice: 'Legal Notice',
+  },
+
+  callback: {
+    finalizing: 'Finalizing sign-in...',
+    failed: 'Unable to complete sign-in. Redirecting...',
+  },
+
+  billing: {
+    backToVideos: 'Back to my videos',
+    currentBalance: 'Current balance: {{credits}} credits (min)',
+    title: 'Top up your Talkiz Video credits',
+    subtitleStrong: '1 credit = 1 minute',
+    subtitleAfter: ' of voice conversation with your YouTube videos. Secure payment via Stripe.',
+    popular: 'Most popular',
+    oneTime: 'one-time payment',
+    creditsLine: '{{credits}} credits ({{credits}} minutes)',
+    choosePlan: 'Choose {{name}}',
+    stripeNotConfigured:
+      'The Stripe link for the "{{name}}" plan ({{credits}} credits) is not yet configured in .env (NUXT_PUBLIC_{{key}}).',
+    securityFooter: '100% secure payment via Stripe • Credits are added automatically to your account.',
+    plans: {
+      starter: {
+        name: 'Starter',
+        tagline: 'Ideal to discover and analyze your first videos',
+        features: [
+          '30 credits = 30 voice minutes',
+          'YouTube audio + visual analysis',
+          '100% private video library',
+          'Full history of your videos',
+        ],
+      },
+      standard: {
+        name: 'Standard',
+        tagline: 'For creators, students, and daily research',
+        features: [
+          '100 credits = 100 voice minutes',
+          'Long videos supported',
+          '100% private video library',
+          'Priority video analysis',
+        ],
+      },
+      pro: {
+        name: 'Pro',
+        tagline: 'For intensive and professional use',
+        features: [
+          '350 credits = 350 voice minutes',
+          'Unlimited videos in your library',
+          'Private and secure access',
+          'Priority support',
+        ],
+      },
+    },
+  },
+}
