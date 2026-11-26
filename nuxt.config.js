@@ -10,13 +10,33 @@ export default defineNuxtConfig({
 
     app: {
         head: {
-            title: 'Talkiz.yt — Voice Chat with YouTube Videos',
+            htmlAttrs: { lang: 'en' },
+            title: 'Talkiz.yt — Have a Voice Chat with Any YouTube Video',
             meta: [
+                { charset: 'utf-8' },
                 { name: 'viewport', content: 'width=device-width, initial-scale=1, maximum-scale=1' },
-                { name: 'description', content: 'Talk to any YouTube video with Talkiz Video AI' }
+                { name: 'description', content: 'Paste any public YouTube link and have a real-time AI voice conversation about the video. Ask questions out loud and jump directly to exact timestamps.' },
+                { name: 'theme-color', content: '#DCEBFE' },
+                // Open Graph (LinkedIn, Facebook, WhatsApp, Slack, Discord)
+                { property: 'og:type', content: 'website' },
+                { property: 'og:site_name', content: 'Talkiz.yt' },
+                { property: 'og:url', content: 'https://talkiz.yt' },
+                { property: 'og:title', content: 'Talkiz.yt — Have a Voice Chat with Any YouTube Video' },
+                { property: 'og:description', content: 'Paste any public YouTube link, ask questions out loud, and jump straight to the exact moment in the video. Free to start.' },
+                { property: 'og:image', content: 'https://talkiz.yt/og-talkiz-yt.png' },
+                { property: 'og:image:width', content: '1200' },
+                { property: 'og:image:height', content: '630' },
+                { property: 'og:image:alt', content: 'Talkiz.yt — Have a voice chat with any YouTube video' },
+                // Twitter / X Card
+                { name: 'twitter:card', content: 'summary_large_image' },
+                { name: 'twitter:title', content: 'Talkiz.yt — Have a Voice Chat with Any YouTube Video' },
+                { name: 'twitter:description', content: 'Paste any public YouTube link, ask questions out loud, and jump straight to the exact moment in the video.' },
+                { name: 'twitter:image', content: 'https://talkiz.yt/og-talkiz-yt.png' },
             ],
             link: [
                 { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg?v=6' },
+                { rel: 'apple-touch-icon', href: '/logo-talkiz-yt-square.png' },
+                { rel: 'canonical', href: 'https://talkiz.yt' },
             ]
         }
     },

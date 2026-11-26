@@ -58,7 +58,8 @@
         >
           <v-chip
             v-if="plan.popular"
-            color="#2196F3"
+            color="primary"
+            variant="flat"
             size="small"
             class="text-white font-weight-bold mb-3 align-self-start"
           >
@@ -92,15 +93,17 @@
 
           <v-btn
             block
-            :color="plan.popular ? '#2196F3' : '#0f172a'"
-            class="text-white font-weight-bold text-none"
+            :color="plan.comingSoon ? 'grey-lighten-2' : (plan.popular ? 'primary' : '#0f172a')"
+            variant="flat"
+            :class="plan.comingSoon ? 'text-grey-darken-2 font-weight-bold text-none' : 'text-white font-weight-bold text-none'"
             height="44"
             rounded="lg"
-            elevation="1"
+            :elevation="plan.comingSoon ? 0 : 1"
+            :disabled="plan.comingSoon"
             @click="startStripeCheckout(plan)"
           >
-            <v-icon start size="18">mdi-lock-outline</v-icon>
-            {{ plan.ctaLabel }}
+            <v-icon start size="18">{{ plan.comingSoon ? 'mdi-clock-outline' : 'mdi-lock-outline' }}</v-icon>
+            {{ plan.comingSoon ? t('billing.comingSoon') : plan.ctaLabel }}
           </v-btn>
         </v-card>
       </v-col>
@@ -137,6 +140,7 @@ const plans = computed(() => [
     credits: 60,
     popular: true,
     stripeLinkKey: 'STRIPE_LINK_STANDARD',
+    comingSoon: !config.public.STRIPE_LINK_STANDARD,
     ctaLabel: t('billing.subscribePlan', { name: t('billing.plans.standard.name') }),
     features: [
       '60 minutes of voice chat every month',
@@ -155,6 +159,7 @@ const plans = computed(() => [
     credits: 300,
     popular: false,
     stripeLinkKey: 'STRIPE_LINK_PACK_5H',
+    comingSoon: !config.public.STRIPE_LINK_PACK_5H,
     ctaLabel: t('billing.buyPack', { name: t('billing.plans.pack5h.name') }),
     features: [
       '5 hours (300 min) of voice conversation',
@@ -173,6 +178,7 @@ const plans = computed(() => [
     credits: 600,
     popular: false,
     stripeLinkKey: 'STRIPE_LINK_PACK_10H',
+    comingSoon: !config.public.STRIPE_LINK_PACK_10H,
     ctaLabel: t('billing.buyPack', { name: t('billing.plans.pack10h.name') }),
     features: [
       '10 hours (600 min) of voice conversation',

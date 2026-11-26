@@ -181,8 +181,9 @@ export default {
     freePlanBanner: 'Free Plan: €0 — 10 voice minutes included at sign-up, no credit card required.',
     perMonth: '/ month (incl. VAT)',
     oneTimeInclVat: 'one-time (incl. VAT)',
-    subscribePlan: 'Subscribe to {name}',
-    buyPack: 'Buy {name}',
+    subscribePlan: 'Subscribe to {{name}}',
+    buyPack: 'Buy {{name}}',
+    comingSoon: 'Coming soon',
     plans: {
       standard: {
         name: 'Standard',
