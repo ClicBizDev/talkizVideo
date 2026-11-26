@@ -194,9 +194,39 @@ const suggestedQuestionBtnStyle = computed(() => ({
 }))
 
 // ── Gemini Live WebSocket & Audio State ────────────────────────────────────
-const GEMINI_VOICES = ['Aoede', 'Charon', 'Fenrir', 'Kore', 'Puck', 'Leda', 'Orus', 'Zephyr']
-const resolveGeminiVoice = (v) => {
-  if (v && GEMINI_VOICES.includes(v)) return v
+// All 30 Google Gemini Live HD prebuilt voices + smart mapping from OpenAI voice names
+const GEMINI_VOICES = [
+  'Aoede', 'Charon', 'Fenrir', 'Kore', 'Puck', 'Leda', 'Orus', 'Zephyr',
+  'Achernar', 'Achird', 'Algenib', 'Algieba', 'Alnilam', 'Autonoe',
+  'Callirrhoe', 'Despina', 'Enceladus', 'Erinome', 'Gacrux', 'Iapetus',
+  'Laomedeia', 'Pulcherrima', 'Rasalgethi', 'Sadachbia', 'Sadaltager',
+  'Schedar', 'Sulafat', 'Umbriel', 'Vindemiatrix', 'Zubenelgenubi',
+]
+
+const OPENAI_TO_GEMINI_VOICE_MAP = {
+  // Feminine / warm / bright
+  shimmer: 'Aoede',
+  coral: 'Kore',
+  sage: 'Leda',
+  gleam: 'Zephyr',
+  marin: 'Aoede',
+  alloy: 'Kore',
+  // Masculine / calm / deep
+  echo: 'Puck',
+  ash: 'Charon',
+  verse: 'Fenrir',
+  ballad: 'Orus',
+  cedar: 'Charon',
+  vale: 'Puck',
+}
+
+const resolveGeminiVoice = (rawVoice) => {
+  if (!rawVoice || typeof rawVoice !== 'string') return 'Aoede'
+  const trimmed = rawVoice.trim()
+  const exact = GEMINI_VOICES.find((v) => v.toLowerCase() === trimmed.toLowerCase())
+  if (exact) return exact
+  const mapped = OPENAI_TO_GEMINI_VOICE_MAP[trimmed.toLowerCase()]
+  if (mapped) return mapped
   return 'Aoede'
 }
 
@@ -381,7 +411,50 @@ const enqueuePcm24kAudio = (base64Data) => {
   }
 }
 
-// ── Microphone Capture (16kHz PCM) ─────────────────────────────────────────
+// ── Microphone Capture (16kHz PCM via AudioWorkletNode) ────────────────────
+const PCM_WORKLET_CODE = `
+class PcmCaptureProcessor extends AudioWorkletProcessor {
+  constructor() {
+    super();
+    this._buffer = new Float32Array(2048);
+    this._offset = 0;
+  }
+  process(inputs) {
+    const channel = inputs[0]?.[0];
+    if (!channel) return true;
+    for (let i = 0; i < channel.length; i++) {
+      this._buffer[this._offset++] = channel[i];
+      if (this._offset >= this._buffer.length) {
+        this.port.postMessage(this._buffer.slice(0));
+        this._offset = 0;
+      }
+    }
+    return true;
+  }
+}
+registerProcessor('pcm-capture-processor', PcmCaptureProcessor);
+`
+
+const handleCapturedPcmChunk = (input) => {
+  if (!ws || ws.readyState !== WebSocket.OPEN || isPaused.value || isMuted.value) {
+    userAudioLevel.value = 0
+    isUserSpeaking.value = false
+    return
+  }
+  let sumSq = 0
+  for (let i = 0; i < input.length; i++) sumSq += input[i] * input[i]
+  const rms = Math.sqrt(sumSq / Math.max(1, input.length))
+  userAudioLevel.value = Math.min(1, rms * 5)
+  isUserSpeaking.value = rms > 0.015
+
+  const b64 = float32ToInt16Base64(input)
+  ws.send(JSON.stringify({
+    realtimeInput: {
+      mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: b64 }],
+    },
+  }))
+}
+
 const startMicCapture = async () => {
   captureStream = await navigator.mediaDevices.getUserMedia({
     audio: {
@@ -396,31 +469,32 @@ const startMicCapture = async () => {
   const AudioCtx = window.AudioContext || window.webkitAudioContext
   captureContext = new AudioCtx({ sampleRate: 16000 })
   captureSource = captureContext.createMediaStreamSource(captureStream)
-  captureProcessor = captureContext.createScriptProcessor(4096, 1, 1)
 
-  captureProcessor.onaudioprocess = (e) => {
-    if (!ws || ws.readyState !== WebSocket.OPEN || isPaused.value || isMuted.value) {
-      userAudioLevel.value = 0
-      isUserSpeaking.value = false
-      return
+  if (captureContext.audioWorklet && typeof AudioWorkletNode !== 'undefined') {
+    const blobUrl = URL.createObjectURL(new Blob([PCM_WORKLET_CODE], { type: 'application/javascript' }))
+    try {
+      await captureContext.audioWorklet.addModule(blobUrl)
+    } finally {
+      URL.revokeObjectURL(blobUrl)
     }
-    const input = e.inputBuffer.getChannelData(0)
-    let sumSq = 0
-    for (let i = 0; i < input.length; i++) sumSq += input[i] * input[i]
-    const rms = Math.sqrt(sumSq / input.length)
-    userAudioLevel.value = Math.min(1, rms * 5)
-    isUserSpeaking.value = rms > 0.015
-
-    const b64 = float32ToInt16Base64(input)
-    ws.send(JSON.stringify({
-      realtimeInput: {
-        mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: b64 }],
-      },
-    }))
+    captureProcessor = new AudioWorkletNode(captureContext, 'pcm-capture-processor')
+    captureProcessor.port.onmessage = (evt) => {
+      if (evt.data instanceof Float32Array) {
+        handleCapturedPcmChunk(evt.data)
+      }
+    }
+    captureSource.connect(captureProcessor)
+    // Keep node alive without routing mic audio to speakers
+    const silentGain = captureContext.createGain()
+    silentGain.gain.value = 0
+    captureProcessor.connect(silentGain)
+    silentGain.connect(captureContext.destination)
+  } else {
+    captureProcessor = captureContext.createScriptProcessor(4096, 1, 1)
+    captureProcessor.onaudioprocess = (e) => handleCapturedPcmChunk(e.inputBuffer.getChannelData(0))
+    captureSource.connect(captureProcessor)
+    captureProcessor.connect(captureContext.destination)
   }
-
-  captureSource.connect(captureProcessor)
-  captureProcessor.connect(captureContext.destination)
 }
 
 const stopMicCapture = () => {
@@ -684,13 +758,14 @@ const cleanupAndPersist = async () => {
       console.warn('[GeminiLive] Failed to save conversation:', e?.message || e)
     }
 
-    if (props.clientUid && durationSec > 0) {
+    if (props.projectUid && durationSec > 0) {
       try {
-        await apiClient().post('/project/decrement-budget', {
-          clientUid: props.clientUid,
-          projectUid: props.projectUid,
-          seconds: durationSec,
+        const decRes = await apiClient().post('/project/decrement-budget', {
+          proj_uid: props.projectUid,
         })
+        if (decRes.data?.success && props.projectConfig && decRes.data?.results?.newBudget !== undefined) {
+          props.projectConfig.client_credit_budget = decRes.data.results.newBudget
+        }
       } catch (e) {
         console.warn('[GeminiLive] Failed to decrement budget:', e?.message || e)
       }
