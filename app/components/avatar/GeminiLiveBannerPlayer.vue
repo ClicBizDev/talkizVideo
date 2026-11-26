@@ -300,8 +300,55 @@ let retriedWithFallbackVoice = false
 let pendingSeekSeconds = null
 let pendingSeekFallbackTimer = null
 let turnCompletedForPendingSeek = false
+let pendingEndConversation = false
+let pendingEndFallbackTimer = null
+let turnCompletedForPendingEnd = false
+let speakingEndTimer = null
+let thinkingWatchdogTimer = null
+let idleSilenceTimer = null
+let agentTurnInProgress = false
 let userSpokeSinceLastTurn = false
 let lastUserSpeechAtMs = 0
+
+const IDLE_AUTO_PAUSE_MS = 20000 // Auto-pause after 20s of silence to stop billing/streaming
+
+const clearSpeakingEndTimer = () => {
+  if (speakingEndTimer) {
+    clearTimeout(speakingEndTimer)
+    speakingEndTimer = null
+  }
+}
+
+const clearThinkingWatchdog = () => {
+  if (thinkingWatchdogTimer) {
+    clearTimeout(thinkingWatchdogTimer)
+    thinkingWatchdogTimer = null
+  }
+}
+
+const clearIdleSilenceTimer = () => {
+  if (idleSilenceTimer) {
+    clearTimeout(idleSilenceTimer)
+    idleSilenceTimer = null
+  }
+}
+
+const resetIdleSilenceTimer = () => {
+  clearIdleSilenceTimer()
+  if (bannerState.value !== 'conversation' || isPaused.value) return
+  idleSilenceTimer = setTimeout(() => {
+    idleSilenceTimer = null
+    if (
+      bannerState.value === 'conversation' &&
+      !isPaused.value &&
+      activePlaybackSources.length === 0 &&
+      !agentTurnInProgress
+    ) {
+      devLog('⏸️ Auto-pausing after 20s of silence (stops active timer & mic streaming)')
+      pauseAgent()
+    }
+  }, IDLE_AUTO_PAUSE_MS)
+}
 
 const formatClock = (totalSeconds) => {
   const sec = Math.max(0, Math.floor(Number(totalSeconds) || 0))
@@ -393,6 +440,12 @@ const flushPendingSeekIfReady = () => {
   const sec = pendingSeekSeconds
   pendingSeekSeconds = null
   turnCompletedForPendingSeek = false
+  pendingEndConversation = false
+  turnCompletedForPendingEnd = false
+  if (pendingEndFallbackTimer) {
+    clearInterval(pendingEndFallbackTimer)
+    pendingEndFallbackTimer = null
+  }
   if (pendingSeekFallbackTimer) {
     clearInterval(pendingSeekFallbackTimer)
     pendingSeekFallbackTimer = null
@@ -401,6 +454,42 @@ const flushPendingSeekIfReady = () => {
   setTimeout(() => {
     emit('seek-youtube', sec)
   }, 350)
+}
+
+const flushPendingEndIfReady = () => {
+  if (!pendingEndConversation) return
+  if (!turnCompletedForPendingEnd || activePlaybackSources.length > 0) return
+  pendingEndConversation = false
+  turnCompletedForPendingEnd = false
+  if (pendingEndFallbackTimer) {
+    clearInterval(pendingEndFallbackTimer)
+    pendingEndFallbackTimer = null
+  }
+  setTimeout(() => {
+    abortConversation()
+  }, 450)
+}
+
+const scheduleCloseAfterSpeech = () => {
+  pendingEndConversation = true
+  turnCompletedForPendingEnd = false
+  const scheduledAt = Date.now()
+  if (pendingEndFallbackTimer) clearInterval(pendingEndFallbackTimer)
+  pendingEndFallbackTimer = setInterval(() => {
+    if (!pendingEndConversation) {
+      clearInterval(pendingEndFallbackTimer)
+      pendingEndFallbackTimer = null
+      return
+    }
+    const elapsed = Date.now() - scheduledAt
+    if ((turnCompletedForPendingEnd && activePlaybackSources.length === 0) || elapsed >= 12000) {
+      pendingEndConversation = false
+      turnCompletedForPendingEnd = false
+      clearInterval(pendingEndFallbackTimer)
+      pendingEndFallbackTimer = null
+      setTimeout(() => abortConversation(), 450)
+    }
+  }, 250)
 }
 
 const scheduleSeekAfterSpeech = (sec) => {
@@ -563,6 +652,8 @@ const float32ToInt16Base64 = (float32Array) => {
 }
 
 const stopScheduledAudio = () => {
+  clearSpeakingEndTimer()
+  agentTurnInProgress = false
   for (const src of activePlaybackSources) {
     try { src.stop() } catch (_) {}
   }
@@ -575,6 +666,10 @@ const stopScheduledAudio = () => {
 
 const enqueuePcm24kAudio = (base64Data) => {
   if (isPaused.value || isMuted.value) return
+  clearSpeakingEndTimer()
+  clearThinkingWatchdog()
+  clearIdleSilenceTimer()
+  agentTurnInProgress = true
   if (!playbackContext) {
     const AudioCtx = window.AudioContext || window.webkitAudioContext
     playbackContext = new AudioCtx({ sampleRate: 24000 })
@@ -617,14 +712,33 @@ const enqueuePcm24kAudio = (base64Data) => {
     activePlaybackSources = activePlaybackSources.filter((s) => s !== source)
     if (activePlaybackSources.length === 0) {
       agentAudioLevel.value = 0
-      isSearchingWeb.value = false
+      if (turnCompletedForPendingEnd && pendingEndConversation) {
+        clearSpeakingEndTimer()
+        agentTurnInProgress = false
+        isSearchingWeb.value = false
+        flushPendingEndIfReady()
+        return
+      }
       if (turnCompletedForPendingSeek && pendingSeekSeconds !== null) {
+        clearSpeakingEndTimer()
+        agentTurnInProgress = false
+        isSearchingWeb.value = false
         flushPendingSeekIfReady()
         return
       }
-      if (bannerState.value === 'conversation' && !isPaused.value) {
-        speakerState.value = 'listening'
-      }
+      // Debounce transition back to 'listening' so brief network gaps between streamed PCM chunks
+      // NEVER flicker the UI between speaking and listening!
+      clearSpeakingEndTimer()
+      const delayMs = agentTurnInProgress ? 450 : 120
+      speakingEndTimer = setTimeout(() => {
+        speakingEndTimer = null
+        if (activePlaybackSources.length === 0 && bannerState.value === 'conversation' && !isPaused.value) {
+          agentTurnInProgress = false
+          isSearchingWeb.value = false
+          speakerState.value = 'listening'
+          resetIdleSilenceTimer()
+        }
+      }, delayMs)
     }
   }
 }
@@ -677,12 +791,14 @@ const handleCapturedPcmChunk = (input) => {
     devLog('🗣️ User barge-in detected while agent speaking (rms=' + rms.toFixed(3) + ')')
   } else {
     userAudioLevel.value = Math.min(1, rms * 5)
-    const speakingNow = rms > 0.018
+    const speakingNow = rms > 0.024
     isUserSpeaking.value = speakingNow
 
     if (speakingNow) {
       userSpokeSinceLastTurn = true
       lastUserSpeechAtMs = Date.now()
+      clearIdleSilenceTimer()
+      clearThinkingWatchdog()
       if (speakerState.value === 'thinking') {
         speakerState.value = 'listening'
       }
@@ -696,6 +812,15 @@ const handleCapturedPcmChunk = (input) => {
       speakerState.value = 'thinking'
       userSpokeSinceLastTurn = false
       devLog('💭 State -> thinking (user stopped speaking)')
+      // Safety watchdog: if it was only brief ambient noise and Gemini sends nothing within 3.5s, return to listening
+      clearThinkingWatchdog()
+      thinkingWatchdogTimer = setTimeout(() => {
+        thinkingWatchdogTimer = null
+        if (speakerState.value === 'thinking' && activePlaybackSources.length === 0 && !isPaused.value) {
+          speakerState.value = 'listening'
+          resetIdleSilenceTimer()
+        }
+      }, 3500)
     }
   }
 
@@ -811,8 +936,8 @@ const handleToolCall = async (toolCall) => {
         scheduleSeekAfterSpeech(sec)
         result = { status: 'scheduled_after_speech', seconds: sec, clock: formatClock(sec) }
       } else if (fnName === 'end_conversation') {
-        result = { status: 'closing' }
-        setTimeout(() => abortConversation(), 1800)
+        scheduleCloseAfterSpeech()
+        result = { status: 'closing_after_farewell', note: 'Say a brief goodbye sentence; the session will close automatically once you finish speaking.' }
       }
     } catch (err) {
       result = { error: err?.message || 'Tool execution failed' }
@@ -944,6 +1069,7 @@ const handleServerMessage = async (rawData) => {
   }
 
   if (sc.turnComplete) {
+    agentTurnInProgress = false
     userSpokeSinceLastTurn = false
     const lastUserText = currentUserTranscript.trim()
     const lastAiText = currentAiTranscript.trim()
@@ -972,7 +1098,12 @@ const handleServerMessage = async (rawData) => {
         }
       }
     }
-    if (pendingSeekSeconds !== null) {
+    if (pendingEndConversation) {
+      turnCompletedForPendingEnd = true
+      if (activePlaybackSources.length === 0) {
+        flushPendingEndIfReady()
+      }
+    } else if (pendingSeekSeconds !== null) {
       turnCompletedForPendingSeek = true
       if (activePlaybackSources.length === 0) {
         flushPendingSeekIfReady()
@@ -1005,6 +1136,12 @@ const startSession = async (initialQuestion = null, forcedVoice = null) => {
   timestampActions.value = []
   pendingSeekSeconds = null
   turnCompletedForPendingSeek = false
+  pendingEndConversation = false
+  turnCompletedForPendingEnd = false
+  if (pendingEndFallbackTimer) {
+    clearInterval(pendingEndFallbackTimer)
+    pendingEndFallbackTimer = null
+  }
   if (pendingSeekFallbackTimer) {
     clearInterval(pendingSeekFallbackTimer)
     pendingSeekFallbackTimer = null
@@ -1088,6 +1225,14 @@ const startSession = async (initialQuestion = null, forcedVoice = null) => {
 }
 
 const cleanupAndPersist = async () => {
+  clearThinkingWatchdog()
+  clearIdleSilenceTimer()
+  pendingEndConversation = false
+  turnCompletedForPendingEnd = false
+  if (pendingEndFallbackTimer) {
+    clearInterval(pendingEndFallbackTimer)
+    pendingEndFallbackTimer = null
+  }
   stopMicCapture()
   stopScheduledAudio()
   try { playbackContext?.close() } catch (_) {}
@@ -1204,6 +1349,8 @@ const handleSuggestedQuestion = (q) => {
 
 const pauseAgent = () => {
   if (bannerState.value !== 'conversation' || isPaused.value) return
+  clearThinkingWatchdog()
+  clearIdleSilenceTimer()
   isPaused.value = true
   isMuted.value = true
   pauseStartedAtMs = Date.now()
@@ -1220,6 +1367,7 @@ const resumeAgent = ({ pauseExternalMedia = true } = {}) => {
   isPaused.value = false
   isMuted.value = false
   speakerState.value = 'listening'
+  resetIdleSilenceTimer()
   if (pauseExternalMedia) {
     emit('conversation-started')
   }
