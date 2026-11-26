@@ -100,7 +100,7 @@
       </div>
     </div>
 
-    <!-- Clickable YouTube Timestamp Buttons (shown during conversation) -->
+    <!-- Clickable YouTube Moment Buttons (shown during conversation) -->
     <div
       v-if="hasSessionStarted && timestampActions.length > 0"
       class="timestamp-actions-box"
@@ -111,12 +111,12 @@
         :key="`${item.seconds}-${idx}`"
         type="button"
         class="timestamp-action-btn"
+        :title="item.clock"
         @click="jumpToTimestamp(item.seconds)"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink: 0;">
+        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="#2196F3" style="flex-shrink: 0;">
           <path d="M8 5v14l11-7z"/>
         </svg>
-        <span class="timestamp-badge">{{ item.clock }}</span>
         <span class="timestamp-label">{{ item.label }}</span>
       </button>
     </div>
@@ -288,14 +288,48 @@ const formatClock = (totalSeconds) => {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
 }
 
+const findBestLabelFromKb = (targetSeconds) => {
+  const kb = props.projectConfig?.proj_kb_content || ''
+  if (!kb) return ''
+  // Scan timestamped lines in KB (e.g. "[03:15] Tour n°2 : ...") and pick the closest match within +-15s
+  const lineRe = /\[(\d{1,2}):(\d{2})(?::(\d{2}))?\]\s*([^\n]{4,100})/g
+  let bestLabel = ''
+  let bestDiff = 20
+  let m
+  while ((m = lineRe.exec(kb)) !== null) {
+    const sec = m[3]
+      ? parseInt(m[1], 10) * 3600 + parseInt(m[2], 10) * 60 + parseInt(m[3], 10)
+      : parseInt(m[1], 10) * 60 + parseInt(m[2], 10)
+    const diff = Math.abs(sec - targetSeconds)
+    if (diff < bestDiff) {
+      bestDiff = diff
+      bestLabel = m[4].replace(/^[\s\-–—•:*#]+/, '').replace(/\*+/g, '').trim()
+    }
+  }
+  if (bestLabel.length > 64) {
+    bestLabel = bestLabel.slice(0, 61).trim() + '…'
+  }
+  return bestLabel
+}
+
 const addTimestampAction = (seconds, label = '') => {
   const sec = Math.max(0, Math.floor(Number(seconds) || 0))
   const clock = formatClock(sec)
-  const cleanLabel = (label || '').trim() || `Watch at ${clock}`
-  const exists = timestampActions.value.some((a) => Math.abs(a.seconds - sec) <= 2)
-  if (!exists) {
-    timestampActions.value = [{ seconds: sec, clock, label: cleanLabel }, ...timestampActions.value].slice(0, 6)
+  let cleanLabel = (label || '').replace(/\b\d{1,2}:\d{2}(?::\d{2})?\b/g, '').replace(/^[\s\-–—:]+|[\s\-–—:]+$/g, '').trim()
+  if (!cleanLabel) {
+    cleanLabel = findBestLabelFromKb(sec) || 'Voir ce passage'
   }
+  const existingIdx = timestampActions.value.findIndex((a) => Math.abs(a.seconds - sec) <= 3)
+  if (existingIdx !== -1) {
+    // Upgrade label if a richer explicit label arrives
+    if (label && cleanLabel && timestampActions.value[existingIdx].label !== cleanLabel) {
+      const updated = [...timestampActions.value]
+      updated[existingIdx] = { seconds: sec, clock, label: cleanLabel }
+      timestampActions.value = updated
+    }
+    return
+  }
+  timestampActions.value = [...timestampActions.value, { seconds: sec, clock, label: cleanLabel }].slice(-6)
 }
 
 const jumpToTimestamp = (seconds) => {
@@ -399,9 +433,10 @@ STRICT GROUNDING & WEB SEARCH RULES:
 
   if (props.hasEmbeddedYoutubePlayer) {
     prompt += `
-VIDEO TIMESTAMP & PLAYBACK RULES:
-- Whenever you mention a moment from the video, state its exact timestamp (e.g. "2:15").
-- Whenever the user asks to show, watch, play, or jump to a moment in the video, you MUST call seek_youtube_video(seconds, label) with the exact timestamp in seconds. Then give a very brief confirmation (e.g. "Je lance la vidéo à 2 minutes 15.") — the video will start automatically right after you finish speaking.`
+VIDEO TIMESTAMP & PLAYBACK RULES (CRITICAL):
+- FULL-VIDEO SCAN RULE: Most YouTube videos begin with a short intro or table of contents (e.g. first 0:00–0:45) that merely previews or lists the topics. NEVER point to the intro/teaser timestamps when the user asks for the passages, steps, tricks, or sections! ALWAYS read through the ENTIRE transcript/knowledge base to the very end to find the ACTUAL timestamps where each topic is fully developed, demonstrated, or explained.
+- CLICKABLE BUTTONS RULE: Whenever you identify one or more relevant moments/sections in the video (e.g. the 3 tricks, the 3 topics, a specific explanation), ALWAYS call display_video_buttons(moments) with a clear, natural title for each moment (in the user's language, e.g. "La pièce qui traverse le verre", NEVER a timestamp like "Watch at 02:15").
+- DIRECT PLAYBACK RULE: Whenever the user explicitly asks to watch, play, show, or jump to a specific moment in the video, call seek_youtube_video(seconds, label) with the ACTUAL development timestamp (not the intro) and give a brief confirmation — the video will start automatically right after you finish speaking.`
   }
 
   if (useRag.value) {
@@ -443,15 +478,37 @@ const buildToolDeclarations = () => {
 
   if (props.hasEmbeddedYoutubePlayer) {
     decls.push({
-      name: 'seek_youtube_video',
-      description: 'Jump and play the embedded YouTube video at a specific timestamp in seconds. MUST be called whenever the user asks to show, watch, play, or go to a moment in the video.',
+      name: 'display_video_buttons',
+      description: 'Display clickable buttons for one or more moments/sections of the video so the user can jump directly to any of them. Use the ACTUAL timestamps where each topic is developed (NOT the intro teaser).',
       parameters: {
         type: 'OBJECT',
         properties: {
-          seconds: { type: 'NUMBER', description: 'Timestamp in seconds from the start of the video' },
-          label: { type: 'STRING', description: 'Short 3-6 word description of this moment' },
+          moments: {
+            type: 'ARRAY',
+            description: 'Ordered list of video moments to display as buttons',
+            items: {
+              type: 'OBJECT',
+              properties: {
+                seconds: { type: 'NUMBER', description: 'Exact timestamp in seconds where the topic is actually explained/developed' },
+                label: { type: 'STRING', description: 'Clear descriptive title of this moment in the user language (NO timestamp numbers in the label)' },
+              },
+              required: ['seconds', 'label'],
+            },
+          },
         },
-        required: ['seconds'],
+        required: ['moments'],
+      },
+    })
+    decls.push({
+      name: 'seek_youtube_video',
+      description: 'Jump and play the embedded YouTube video at a specific timestamp in seconds. MUST be called when the user explicitly asks to watch, play, or jump to a specific moment.',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          seconds: { type: 'NUMBER', description: 'Timestamp in seconds where the topic is actually explained/developed (NOT the intro)' },
+          label: { type: 'STRING', description: 'Clear descriptive title of this moment in the user language (NO timestamp numbers)' },
+        },
+        required: ['seconds', 'label'],
       },
     })
   }
@@ -682,12 +739,23 @@ const handleToolCall = async (toolCall) => {
         const res = await apiClient().post('/project/rag-search', {
           projectUid: props.projectUid,
           query: args.query || '',
-          topK: 5,
+          topK: 8,
         })
         const chunks = res.data?.results?.chunks || res.data?.chunks || []
         result = {
           context: chunks.map((c) => c.content || c).join('\n\n') || 'No matching passage found in the video.',
         }
+      } else if (fnName === 'display_video_buttons') {
+        const moments = Array.isArray(args.moments) ? args.moments : []
+        if (moments.length > 0) {
+          timestampActions.value = []
+          for (const item of moments) {
+            if (item && item.seconds !== undefined) {
+              addTimestampAction(item.seconds, item.label || '')
+            }
+          }
+        }
+        result = { status: 'displayed', count: timestampActions.value.length }
       } else if (fnName === 'seek_youtube_video') {
         const sec = Math.max(0, Math.floor(Number(args.seconds) || 0))
         addTimestampAction(sec, args.label || '')
