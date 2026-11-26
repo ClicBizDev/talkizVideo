@@ -92,11 +92,33 @@
             :isThinking="speakerState === 'thinking' && !isPaused"
             :agentIsSpeaking="speakerState === 'speaking' && !isPaused"
             :agentAudioLevel="agentAudioLevel"
+            :isSearchingWeb="isSearchingWeb && !isPaused"
             :colorText="effectiveTextColor"
             :colorBg="effectiveBgColor"
           />
         </div>
       </div>
+    </div>
+
+    <!-- Clickable YouTube Timestamp Buttons (shown during conversation) -->
+    <div
+      v-if="hasSessionStarted && timestampActions.length > 0"
+      class="timestamp-actions-box"
+      @click.stop
+    >
+      <button
+        v-for="(item, idx) in timestampActions"
+        :key="`${item.seconds}-${idx}`"
+        type="button"
+        class="timestamp-action-btn"
+        @click="jumpToTimestamp(item.seconds)"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" style="flex-shrink: 0;">
+          <path d="M8 5v14l11-7z"/>
+        </svg>
+        <span class="timestamp-badge">{{ item.clock }}</span>
+        <span class="timestamp-label">{{ item.label }}</span>
+      </button>
     </div>
 
     <div v-if="errorMessage && bannerState === 'initial'" class="text-caption mt-2 text-center" style="color: #dc2626;">
@@ -137,11 +159,13 @@ const speakerState = ref('idle') // 'idle' | 'listening' | 'thinking' | 'speakin
 const isPaused = ref(false)
 const isMuted = ref(false)
 const isUserSpeaking = ref(false)
+const isSearchingWeb = ref(false)
 const userAudioLevel = ref(0)
 const agentAudioLevel = ref(0)
 const conversationEnded = ref(false)
 const hasSessionStarted = ref(false)
 const errorMessage = ref('')
+const timestampActions = ref([])
 
 const activeSuggestedQuestions = computed(() =>
   (props.suggestedQuestions || []).filter((q) => typeof q === 'string' && q.trim().length > 0)
@@ -247,6 +271,50 @@ let currentAiTranscript = ''
 let pendingInitialQuestion = null
 let isExternalMediaPlaying = false
 let hasSavedConversation = false
+let setupCompleted = false
+let retriedWithFallbackVoice = false
+let pendingSeekSeconds = null
+let pendingSeekFallbackTimer = null
+let turnCompletedForPendingSeek = false
+let userSpokeSinceLastTurn = false
+let lastUserSpeechAtMs = 0
+
+const formatClock = (totalSeconds) => {
+  const sec = Math.max(0, Math.floor(Number(totalSeconds) || 0))
+  const h = Math.floor(sec / 3600)
+  const m = Math.floor((sec % 3600) / 60)
+  const s = sec % 60
+  if (h > 0) return `${h}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+const addTimestampAction = (seconds, label = '') => {
+  const sec = Math.max(0, Math.floor(Number(seconds) || 0))
+  const clock = formatClock(sec)
+  const cleanLabel = (label || '').trim() || `Watch at ${clock}`
+  const exists = timestampActions.value.some((a) => Math.abs(a.seconds - sec) <= 2)
+  if (!exists) {
+    timestampActions.value = [{ seconds: sec, clock, label: cleanLabel }, ...timestampActions.value].slice(0, 6)
+  }
+}
+
+const jumpToTimestamp = (seconds) => {
+  const sec = Math.max(0, Math.floor(Number(seconds) || 0))
+  emit('seek-youtube', sec)
+}
+
+const flushPendingSeekIfReady = () => {
+  if (pendingSeekSeconds === null) return
+  if (activePlaybackSources.length > 0) return
+  const sec = pendingSeekSeconds
+  pendingSeekSeconds = null
+  turnCompletedForPendingSeek = false
+  if (pendingSeekFallbackTimer) {
+    clearTimeout(pendingSeekFallbackTimer)
+    pendingSeekFallbackTimer = null
+  }
+  emit('seek-youtube', sec)
+}
 
 const usageTotals = {
   provider: 'gemini-live',
@@ -269,14 +337,21 @@ const buildSystemInstruction = () => {
 
   let prompt = `You are a friendly, concise voice assistant helping the user discuss the YouTube video "${title}".
 Respond naturally in the user's spoken language (default language: ${lang}).
-STRICT GROUNDING RULES:
+STRICT GROUNDING & WEB SEARCH RULES:
 - Base every answer strictly on the video content provided below${useRag.value ? ' or retrieved via search_video_knowledge' : ''}.
-- NEVER invent facts, quotes, or details not present in the video. If something is not mentioned in the video, say so clearly.
+- NEVER invent facts, quotes, or details not present in the video.
+- If the user asks something that is NOT mentioned in the video:
+  1. Clearly state that this information is not in the video.
+  2. Politely ask if they would like you to search the web for the answer (in the user's language, e.g. "Souhaitez-vous que je fasse une recherche sur internet ?" or "Would you like me to search the web for this?").
+  3. NEVER use Google Search until the user explicitly agrees ("yes", "oui", "go ahead", etc.).
+  4. Once the user explicitly agrees, use Google Search to answer and clearly mention that the answer comes from a web search.
 - Keep spoken replies concise, conversational, and direct (2 to 4 sentences unless the user asks for details).`
 
   if (props.hasEmbeddedYoutubePlayer) {
     prompt += `
-- When the user asks to jump to, watch, or show a specific moment of the video, call the tool seek_youtube_video with the exact timestamp in seconds.`
+VIDEO TIMESTAMP & PLAYBACK RULES:
+- Whenever your answer refers to a specific moment or topic in the video with a known timestamp, ALWAYS call show_video_moment(seconds, label) so a clickable jump button appears for the user, WITHOUT interrupting playback.
+- ONLY when the user explicitly asks to watch, play, show, or jump to a moment in the video, call seek_youtube_video(seconds, label) and briefly finish your sentence (the video will automatically start right after you finish speaking).`
   }
 
   if (useRag.value) {
@@ -318,19 +393,35 @@ const buildToolDeclarations = () => {
 
   if (props.hasEmbeddedYoutubePlayer) {
     decls.push({
-      name: 'seek_youtube_video',
-      description: 'Jump and play the embedded YouTube video at a specific timestamp in seconds.',
+      name: 'show_video_moment',
+      description: 'Display a clickable timestamp button so the user can jump directly to a relevant moment of the video while keeping the conversation active.',
       parameters: {
         type: 'OBJECT',
         properties: {
           seconds: { type: 'NUMBER', description: 'Timestamp in seconds from the start of the video' },
+          label: { type: 'STRING', description: 'Short 3-6 word description of what happens at this timestamp (in the user language)' },
+        },
+        required: ['seconds', 'label'],
+      },
+    })
+    decls.push({
+      name: 'seek_youtube_video',
+      description: 'Jump and play the embedded YouTube video at a specific timestamp in seconds (use ONLY when the user explicitly asks to watch or jump to a moment).',
+      parameters: {
+        type: 'OBJECT',
+        properties: {
+          seconds: { type: 'NUMBER', description: 'Timestamp in seconds from the start of the video' },
+          label: { type: 'STRING', description: 'Short 3-6 word description of this moment' },
         },
         required: ['seconds'],
       },
     })
   }
 
-  return [{ functionDeclarations: decls }]
+  return [
+    { googleSearch: {} },
+    { functionDeclarations: decls },
+  ]
 }
 
 // ── PCM Encoding / Decoding Helpers ────────────────────────────────────────
@@ -404,6 +495,11 @@ const enqueuePcm24kAudio = (base64Data) => {
     activePlaybackSources = activePlaybackSources.filter((s) => s !== source)
     if (activePlaybackSources.length === 0) {
       agentAudioLevel.value = 0
+      isSearchingWeb.value = false
+      if (turnCompletedForPendingSeek && pendingSeekSeconds !== null) {
+        flushPendingSeekIfReady()
+        return
+      }
       if (bannerState.value === 'conversation' && !isPaused.value) {
         speakerState.value = 'listening'
       }
@@ -445,7 +541,25 @@ const handleCapturedPcmChunk = (input) => {
   for (let i = 0; i < input.length; i++) sumSq += input[i] * input[i]
   const rms = Math.sqrt(sumSq / Math.max(1, input.length))
   userAudioLevel.value = Math.min(1, rms * 5)
-  isUserSpeaking.value = rms > 0.015
+  const speakingNow = rms > 0.015
+  isUserSpeaking.value = speakingNow
+
+  if (speakingNow) {
+    userSpokeSinceLastTurn = true
+    lastUserSpeechAtMs = Date.now()
+    if (speakerState.value === 'thinking') {
+      speakerState.value = 'listening'
+    }
+  } else if (
+    userSpokeSinceLastTurn &&
+    speakerState.value === 'listening' &&
+    activePlaybackSources.length === 0 &&
+    Date.now() - lastUserSpeechAtMs >= 450
+  ) {
+    // Show thinking animation while Gemini processes the user's utterance
+    speakerState.value = 'thinking'
+    userSpokeSinceLastTurn = false
+  }
 
   const b64 = float32ToInt16Base64(input)
   ws.send(JSON.stringify({
@@ -536,10 +650,24 @@ const handleToolCall = async (toolCall) => {
         result = {
           context: chunks.map((c) => c.content || c).join('\n\n') || 'No matching passage found in the video.',
         }
+      } else if (fnName === 'show_video_moment') {
+        const sec = Math.max(0, Math.floor(Number(args.seconds) || 0))
+        addTimestampAction(sec, args.label || '')
+        result = { status: 'displayed', seconds: sec, clock: formatClock(sec) }
       } else if (fnName === 'seek_youtube_video') {
         const sec = Math.max(0, Math.floor(Number(args.seconds) || 0))
-        emit('seek-youtube', sec)
-        result = { status: 'seeking', seconds: sec }
+        addTimestampAction(sec, args.label || '')
+        // Defer video start until Gemini finishes speaking its current sentence
+        pendingSeekSeconds = sec
+        turnCompletedForPendingSeek = false
+        if (pendingSeekFallbackTimer) clearTimeout(pendingSeekFallbackTimer)
+        pendingSeekFallbackTimer = setTimeout(() => {
+          pendingSeekFallbackTimer = null
+          if (pendingSeekSeconds !== null && activePlaybackSources.length === 0) {
+            flushPendingSeekIfReady()
+          }
+        }, 4500)
+        result = { status: 'scheduled_after_speech', seconds: sec, clock: formatClock(sec) }
       } else if (fnName === 'end_conversation') {
         result = { status: 'closing' }
         setTimeout(() => abortConversation(), 1800)
@@ -582,6 +710,7 @@ const handleServerMessage = async (rawData) => {
   try { msg = JSON.parse(text) } catch { return }
 
   if (msg.setupComplete) {
+    setupCompleted = true
     bannerState.value = 'conversation'
     speakerState.value = 'listening'
     hasSessionStarted.value = true
@@ -627,6 +756,10 @@ const handleServerMessage = async (rawData) => {
     currentAiTranscript += sc.outputTranscription.text
   }
 
+  if (sc.groundingMetadata) {
+    isSearchingWeb.value = true
+  }
+
   if (sc.modelTurn?.parts) {
     for (const part of sc.modelTurn.parts) {
       if (part.inlineData?.mimeType?.startsWith('audio/') && part.inlineData?.data) {
@@ -636,6 +769,7 @@ const handleServerMessage = async (rawData) => {
   }
 
   if (sc.turnComplete) {
+    userSpokeSinceLastTurn = false
     if (currentUserTranscript.trim()) {
       transcriptEntries.push({ role: 'user', text: currentUserTranscript.trim() })
       currentUserTranscript = ''
@@ -644,21 +778,45 @@ const handleServerMessage = async (rawData) => {
       transcriptEntries.push({ role: 'assistant', text: currentAiTranscript.trim() })
       currentAiTranscript = ''
     }
+    if (pendingSeekSeconds !== null) {
+      turnCompletedForPendingSeek = true
+      if (activePlaybackSources.length === 0) {
+        flushPendingSeekIfReady()
+      }
+    } else if (activePlaybackSources.length === 0 && !isPaused.value) {
+      isSearchingWeb.value = false
+      speakerState.value = 'listening'
+    }
   }
 }
 
-const startSession = async (initialQuestion = null) => {
+const startSession = async (initialQuestion = null, forcedVoice = null) => {
   if (bannerState.value === 'connecting' || bannerState.value === 'conversation') return
   errorMessage.value = ''
   conversationEnded.value = false
   hasSavedConversation = false
+  setupCompleted = false
+  if (!forcedVoice) {
+    retriedWithFallbackVoice = false
+  }
   isPaused.value = false
   isMuted.value = false
   pausedTotalMs = 0
   pauseStartedAtMs = 0
   transcriptEntries = []
+  timestampActions.value = []
+  pendingSeekSeconds = null
+  turnCompletedForPendingSeek = false
+  if (pendingSeekFallbackTimer) {
+    clearTimeout(pendingSeekFallbackTimer)
+    pendingSeekFallbackTimer = null
+  }
+  userSpokeSinceLastTurn = false
+  isSearchingWeb.value = false
   pendingInitialQuestion = initialQuestion
   bannerState.value = 'connecting'
+
+  const voiceToUse = forcedVoice || resolveGeminiVoice(props.voiceType)
 
   try {
     const { data } = await apiClient().post('/openai/gemini-live-session', {
@@ -681,7 +839,7 @@ const startSession = async (initialQuestion = null) => {
             speechConfig: {
               voiceConfig: {
                 prebuiltVoiceConfig: {
-                  voiceName: resolveGeminiVoice(props.voiceType),
+                  voiceName: voiceToUse,
                 },
               },
             },
@@ -704,10 +862,21 @@ const startSession = async (initialQuestion = null) => {
 
     ws.onerror = (err) => {
       console.error('[GeminiLive] WebSocket error:', err)
-      errorMessage.value = 'Voice connection error. Please try again.'
     }
 
-    ws.onclose = () => {
+    ws.onclose = (evt) => {
+      // If Gemini rejected the requested voice (or setup) before setupComplete, auto-retry once with safe fallback voice "Aoede"
+      if (!setupCompleted && !retriedWithFallbackVoice && voiceToUse !== 'Aoede') {
+        console.warn(`[GeminiLive] Setup closed before ready with voice "${voiceToUse}" (code=${evt?.code}, reason="${evt?.reason || ''}"). Retrying with fallback voice "Aoede"...`)
+        retriedWithFallbackVoice = true
+        ws = null
+        bannerState.value = 'initial'
+        startSession(pendingInitialQuestion, 'Aoede')
+        return
+      }
+      if (!setupCompleted && evt?.reason) {
+        errorMessage.value = `Voice setup error: ${evt.reason}`
+      }
       if (bannerState.value === 'conversation' || bannerState.value === 'connecting') {
         cleanupAndPersist()
       }
@@ -907,5 +1076,57 @@ defineExpose({
 
 @keyframes gemini-spin {
   to { transform: rotate(360deg); }
+}
+
+.timestamp-actions-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  margin-top: 10px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(15, 23, 42, 0.08);
+  max-height: 140px;
+  overflow-y: auto;
+}
+
+.timestamp-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(33, 150, 243, 0.25);
+  background: rgba(33, 150, 243, 0.08);
+  color: #0f172a;
+  font-size: 0.82rem;
+  font-weight: 500;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, transform 0.12s ease;
+}
+
+.timestamp-action-btn:hover {
+  background: rgba(33, 150, 243, 0.16);
+  transform: translateY(-1px);
+}
+
+.timestamp-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: 6px;
+  background: #2196F3;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.timestamp-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 </style>
