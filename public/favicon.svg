@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" shape-rendering="geometricPrecision">
-  <rect x="0" y="0" width="120" height="120" rx="28" fill="#E51919" />
-  <g transform="translate(60 60) scale(0.84) translate(-60 -56)">
-    <rect x="39" y="13" width="42" height="58" rx="21" fill="none" stroke="#ffffff" stroke-width="8" />
-    <path d="M 60 35 C 65.5 45.2 65.5 45.2 75.8 50.8 C 65.5 56.4 65.5 56.4 60 66.6 C 54.5 56.4 54.5 56.4 44.2 50.8 C 54.5 45.2 54.5 45.2 60 35 Z" fill="#ffffff" />
-    <path d="M 27 48 L 27 52 A 33 33 0 0 0 93 52 L 93 48" fill="none" stroke="#ffffff" stroke-width="8" stroke-linecap="round" />
-    <line x1="60" y1="84" x2="60" y2="100" stroke="#ffffff" stroke-width="8" />
-    <line x1="38" y1="100" x2="82" y2="100" stroke="#ffffff" stroke-width="8" stroke-linecap="round" />
+  <rect x="0" y="0" width="120" height="120" rx="12" fill="#E51919" />
+  <g transform="translate(60 60) scale(1.04) translate(-60 -56.5)">
+    <rect x="39" y="13" width="42" height="58" rx="21" fill="none" stroke="#ffffff" stroke-width="9" />
+    <path d="M 60 34 C 66 44.8 66 44.8 76.8 50.8 C 66 56.8 66 56.8 60 67.6 C 54 56.8 54 56.8 43.2 50.8 C 54 44.8 54 44.8 60 34 Z" fill="#ffffff" />
+    <path d="M 27 48 L 27 52 A 33 33 0 0 0 93 52 L 93 48" fill="none" stroke="#ffffff" stroke-width="9" stroke-linecap="round" />
+    <line x1="60" y1="84" x2="60" y2="100" stroke="#ffffff" stroke-width="9" />
+    <line x1="38" y1="100" x2="82" y2="100" stroke="#ffffff" stroke-width="9" stroke-linecap="round" />
   </g>
 </svg>
