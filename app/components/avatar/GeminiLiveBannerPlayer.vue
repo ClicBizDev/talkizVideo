@@ -98,8 +98,8 @@
               <AiMicAnimation
                 :isPulsing="isPulsing && (bannerState === 'initial' || isPaused)"
                 :isListening="!isPaused && !isMuted && bannerState === 'conversation' && speakerState === 'listening'"
-                :isUserSpeaking="isUserSpeaking && !isPaused && !isMuted"
-                :userAudioLevel="userAudioLevel"
+                :isUserSpeaking="isUserSpeaking && !isPaused && !isMuted && speakerState !== 'speaking'"
+                :userAudioLevel="speakerState === 'speaking' ? 0 : userAudioLevel"
                 :isThinking="speakerState === 'thinking' && !isPaused"
                 :agentIsSpeaking="speakerState === 'speaking' && !isPaused"
                 :agentAudioLevel="agentAudioLevel"
@@ -166,6 +166,13 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['conversation-started', 'seek-youtube', 'close'])
+
+const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+const devLog = (...args) => {
+  if (isLocalhost) {
+    console.log('[GeminiLive]', ...args)
+  }
+}
 
 const bannerState = ref('initial') // 'initial' | 'connecting' | 'conversation' | 'ended'
 const speakerState = ref('idle') // 'idle' | 'listening' | 'thinking' | 'speaking'
@@ -655,25 +662,41 @@ const handleCapturedPcmChunk = (input) => {
   let sumSq = 0
   for (let i = 0; i < input.length; i++) sumSq += input[i] * input[i]
   const rms = Math.sqrt(sumSq / Math.max(1, input.length))
-  userAudioLevel.value = Math.min(1, rms * 5)
-  const speakingNow = rms > 0.015
-  isUserSpeaking.value = speakingNow
 
-  if (speakingNow) {
-    userSpokeSinceLastTurn = true
-    lastUserSpeechAtMs = Date.now()
-    if (speakerState.value === 'thinking') {
-      speakerState.value = 'listening'
+  const agentCurrentlySpeaking = activePlaybackSources.length > 0 || speakerState.value === 'speaking'
+
+  // Acoustic echo guard: while the agent is speaking over speakers, gate low/medium mic echo
+  // so Gemini does NOT hear itself and does NOT flicker between user/agent animations.
+  // A real close-mic user interruption (rms >= 0.055) still passes through for barge-in.
+  if (agentCurrentlySpeaking) {
+    userAudioLevel.value = 0
+    isUserSpeaking.value = false
+    if (rms < 0.055) {
+      return
     }
-  } else if (
-    userSpokeSinceLastTurn &&
-    speakerState.value === 'listening' &&
-    activePlaybackSources.length === 0 &&
-    Date.now() - lastUserSpeechAtMs >= 450
-  ) {
-    // Show thinking animation while Gemini processes the user's utterance
-    speakerState.value = 'thinking'
-    userSpokeSinceLastTurn = false
+    devLog('🗣️ User barge-in detected while agent speaking (rms=' + rms.toFixed(3) + ')')
+  } else {
+    userAudioLevel.value = Math.min(1, rms * 5)
+    const speakingNow = rms > 0.018
+    isUserSpeaking.value = speakingNow
+
+    if (speakingNow) {
+      userSpokeSinceLastTurn = true
+      lastUserSpeechAtMs = Date.now()
+      if (speakerState.value === 'thinking') {
+        speakerState.value = 'listening'
+      }
+    } else if (
+      userSpokeSinceLastTurn &&
+      speakerState.value === 'listening' &&
+      activePlaybackSources.length === 0 &&
+      Date.now() - lastUserSpeechAtMs >= 450
+    ) {
+      // Show thinking animation while Gemini processes the user's utterance
+      speakerState.value = 'thinking'
+      userSpokeSinceLastTurn = false
+      devLog('💭 State -> thinking (user stopped speaking)')
+    }
   }
 
   const b64 = float32ToInt16Base64(input)
@@ -752,6 +775,7 @@ const handleToolCall = async (toolCall) => {
   for (const call of calls) {
     const fnName = call.name
     const args = call.args || {}
+    devLog(`🛠️ TOOL CALL: ${fnName}`, args)
     let result = { ok: true }
 
     try {
@@ -790,6 +814,7 @@ const handleToolCall = async (toolCall) => {
       result = { error: err?.message || 'Tool execution failed' }
     }
 
+    devLog(`✅ TOOL RESULT (${fnName}):`, result)
     responses.push({
       id: call.id,
       name: fnName,
@@ -829,6 +854,11 @@ const handleServerMessage = async (rawData) => {
     speakerState.value = 'listening'
     hasSessionStarted.value = true
     sessionStartTimeMs = Date.now()
+    devLog('🟢 Session READY', {
+      projectUid: props.projectUid,
+      voice: resolveGeminiVoice(props.voiceType),
+      mode: useRag.value ? 'RAG' : `INLINE (${(props.projectConfig?.proj_kb_content || '').length} chars)`,
+    })
     emit('conversation-started')
 
     await startMicCapture()
@@ -858,6 +888,7 @@ const handleServerMessage = async (rawData) => {
   if (!sc) return
 
   if (sc.interrupted) {
+    devLog('⚡ Agent INTERRUPTED by user/audio')
     stopScheduledAudio()
     speakerState.value = 'listening'
     return
@@ -877,6 +908,7 @@ const handleServerMessage = async (rawData) => {
   }
 
   if (sc.groundingMetadata) {
+    devLog('🌐 Google Search grounding used:', sc.groundingMetadata)
     isSearchingWeb.value = true
   }
 
@@ -893,10 +925,12 @@ const handleServerMessage = async (rawData) => {
     const lastUserText = currentUserTranscript.trim()
     const lastAiText = currentAiTranscript.trim()
     if (lastUserText) {
+      devLog('🧑 USER:', lastUserText)
       transcriptEntries.push({ role: 'user', text: lastUserText })
       currentUserTranscript = ''
     }
     if (lastAiText) {
+      devLog('🤖 AI:', lastAiText)
       transcriptEntries.push({ role: 'assistant', text: lastAiText })
       currentAiTranscript = ''
       // Always extract any spoken timestamps into clickable jump buttons

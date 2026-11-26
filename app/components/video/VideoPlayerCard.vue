@@ -212,10 +212,11 @@
             {{ t('common.cancel') }}
           </v-btn>
           <v-btn
-            color="#2196F3"
+            color="primary"
             variant="flat"
             rounded="pill"
             class="text-white text-none font-weight-bold px-5"
+            style="background-color: #2196F3 !important;"
             @click="acceptMicConsent"
           >
             <v-icon start size="18">mdi-microphone</v-icon>
@@ -266,12 +267,26 @@ const getConsentStorageKey = () => {
   return uid ? `mic_consent_accepted_${uid}` : 'mic_consent_accepted'
 }
 
-const loadMicConsent = () => {
+const loadMicConsent = async () => {
   if (typeof localStorage === 'undefined') return
   const userKey = getConsentStorageKey()
-  micConsentAccepted.value =
+  const stored =
     localStorage.getItem(userKey) === 'true' ||
     localStorage.getItem('mic_consent_accepted') === 'true'
+
+  // If the browser has NOT yet granted microphone permission ('prompt'), always show the RGPD disclaimer first
+  if (stored && typeof navigator !== 'undefined' && navigator.permissions?.query) {
+    try {
+      const perm = await navigator.permissions.query({ name: 'microphone' })
+      if (perm.state === 'prompt') {
+        micConsentAccepted.value = false
+        return
+      }
+    } catch {
+      // Safari / browsers without microphone permission query: fall back to stored flag
+    }
+  }
+  micConsentAccepted.value = stored
 }
 
 const onPlayerAreaClick = (event) => {
@@ -474,7 +489,7 @@ const triggerAutoStartIfRequested = async () => {
     return
   }
   emit('auto-started')
-  loadMicConsent()
+  await loadMicConsent()
   await nextTick()
   setTimeout(() => {
     if (props.creditsDepleted || embedBlocked.value) return
