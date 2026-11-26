@@ -47,13 +47,14 @@
             />
             <!-- Full crisp vector logo (Talkiz.yt) -->
             <img
-              src="/logo-talkiz-yt.svg?v=1"
+              src="/logo-talkiz-yt.svg?v=3"
               alt="Talkiz.yt"
-              width="172"
+              width="158"
               height="40"
               class="brand-full-logo flex-shrink-0"
               :class="{ 'd-none d-sm-inline-block': authStore.isAuthenticated }"
             />
+            <span class="brand-beta-badge">beta</span>
           </NuxtLink>
         </div>
 
@@ -367,6 +368,21 @@ onUnmounted(() => {
   height: 36px;
   width: auto;
   display: block;
+}
+
+.brand-beta-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1d4ed8;
+  background: #dbeafe;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  padding: 2px 6px;
+  line-height: 1.3;
+  align-self: center;
+  flex-shrink: 0;
 }
 
 @media (min-width: 600px) {

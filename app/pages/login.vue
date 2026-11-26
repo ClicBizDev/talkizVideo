@@ -2,14 +2,17 @@
   <div class="login-backdrop d-flex align-center justify-center pa-4">
     <div class="login-card">
       <!-- Brand badge -->
-      <div class="d-flex align-center justify-center mb-5">
+      <div class="d-flex align-center justify-center ga-2 mb-5">
         <img
-          src="/logo-talkiz-yt.svg?v=1"
+          src="/logo-talkiz-yt.svg?v=3"
           alt="Talkiz.yt"
-          width="198"
+          width="181"
           height="46"
           style="height: 46px; width: auto; display: block;"
         />
+        <span style="font-size: 0.68rem; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: #93c5fd; background: rgba(59, 130, 246, 0.16); border: 1px solid rgba(147, 197, 253, 0.35); border-radius: 6px; padding: 2px 6px; line-height: 1.3; align-self: center;">
+          beta
+        </span>
       </div>
 
       <!-- Heading (OpusClip-inspired layout) -->

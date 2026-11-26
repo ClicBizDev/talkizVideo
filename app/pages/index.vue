@@ -218,6 +218,14 @@
                       <div v-else class="sidebar-thumb-fallback">
                         <v-icon size="20" color="white">mdi-play</v-icon>
                       </div>
+                      <button
+                        type="button"
+                        class="card-delete-btn"
+                        :title="t('drawer.deleteTooltip')"
+                        @click.stop="confirmDeleteVideo(v)"
+                      >
+                        <v-icon size="15" color="white">mdi-delete-outline</v-icon>
+                      </button>
                     </div>
                     <div class="sidebar-video-title">
                       {{ v.proj_youtube_title || v.proj_name || 'YouTube Video' }}
@@ -314,6 +322,14 @@
                   <div class="recent-play-overlay">
                     <v-icon color="white" size="34">mdi-play-circle</v-icon>
                   </div>
+                  <button
+                    type="button"
+                    class="card-delete-btn"
+                    :title="t('drawer.deleteTooltip')"
+                    @click.stop="confirmDeleteVideo(v)"
+                  >
+                    <v-icon size="16" color="white">mdi-delete-outline</v-icon>
+                  </button>
                 </div>
                 <div class="pa-3 d-flex flex-column flex-grow-1 justify-space-between">
                   <div class="recent-video-title font-weight-semibold">
@@ -385,6 +401,24 @@
         </div>
       </div>
     </template>
+
+    <!-- Delete confirmation dialog (for Column 1 & Homepage cards) -->
+    <v-dialog v-model="deleteDialog" max-width="380" width="calc(100% - 24px)">
+      <v-card rounded="xl" class="pa-2">
+        <v-card-title class="text-subtitle-1 font-weight-bold">
+          {{ t('drawer.deleteModalTitle') }}
+        </v-card-title>
+        <v-card-text class="text-body-2 text-grey-darken-1">
+          {{ t('drawer.deleteModalBodyBefore') }}<strong>{{ videoToDelete?.proj_youtube_title || videoToDelete?.proj_name }}</strong>{{ t('drawer.deleteModalBodyAfter') }}
+        </v-card-text>
+        <v-card-actions class="justify-end ga-2">
+          <v-btn variant="text" @click="deleteDialog = false">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="error" variant="flat" :loading="deletingVideo" @click="executeDeleteVideo">
+            {{ t('common.delete') }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </div>
 </template>
 
@@ -405,6 +439,23 @@ const { t } = useI18n()
 const initializingAuth = ref(true)
 const signingInGuest = ref(false)
 const autoStartAgent = ref(false)
+const deleteDialog = ref(false)
+const videoToDelete = ref(null)
+const deletingVideo = ref(false)
+
+const confirmDeleteVideo = (v) => {
+  videoToDelete.value = v
+  deleteDialog.value = true
+}
+
+const executeDeleteVideo = async () => {
+  if (!videoToDelete.value || !authStore.clientUid) return
+  deletingVideo.value = true
+  await videosStore.deleteVideo(authStore.clientUid, videoToDelete.value.proj_uid)
+  deletingVideo.value = false
+  deleteDialog.value = false
+  videoToDelete.value = null
+}
 
 const youtubeUrl = computed({
   get: () => videosStore.youtubeUrlInput,
@@ -1007,11 +1058,45 @@ onUnmounted(() => {
 }
 
 .sidebar-thumb-box {
+  position: relative;
   width: 100%;
   aspect-ratio: 16 / 9;
   border-radius: 7px;
   overflow: hidden;
   background: #0f172a;
+}
+
+.card-delete-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  z-index: 5;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(15, 23, 42, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.card-delete-btn:hover {
+  background: #dc2626;
+}
+
+.sidebar-video-item:hover .card-delete-btn,
+.recent-video-card:hover .card-delete-btn {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .card-delete-btn {
+    opacity: 0.9;
+  }
 }
 
 .sidebar-thumb-img {
