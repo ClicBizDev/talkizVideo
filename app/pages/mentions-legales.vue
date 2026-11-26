@@ -54,7 +54,7 @@
           Mentions Légales
         </h1>
         <p class="text-caption text-grey-darken-1 mb-6">
-          Site : <a href="https://video.talkiz.ai" class="text-primary">https://video.talkiz.ai</a> &bull; Dernière mise à jour : [Date]
+          Site : <a href="https://talkiz.yt" class="text-primary">https://talkiz.yt</a> &bull; Dernière mise à jour : [Date]
         </p>
 
         <v-divider class="mb-6" />
@@ -62,7 +62,7 @@
         <section class="legal-section mb-7">
           <h2 class="text-h6 font-weight-bold mb-3">1. Éditeur du site</h2>
           <p>
-            Le site <a href="https://video.talkiz.ai" class="text-primary">https://video.talkiz.ai</a> (service <strong>Talkiz Video</strong>) est édité par :
+            Le site <a href="https://talkiz.yt" class="text-primary">https://talkiz.yt</a> (service <strong>Talkiz Video</strong>) est édité par :
           </p>
           <ul class="legal-list mb-0">
             <li><strong>Raison sociale :</strong> [Dénomination sociale de votre SAS]</li>
@@ -96,7 +96,7 @@
         <section class="legal-section mb-7">
           <h2 class="text-h6 font-weight-bold mb-3">3. Propriété intellectuelle et non-affiliation</h2>
           <p>
-            L’ensemble des éléments composant le site <a href="https://video.talkiz.ai" class="text-primary">https://video.talkiz.ai</a> (marque Talkiz Video, logo, interface, textes, codes sources, architecture logicielle) est la propriété exclusive de [Dénomination sociale de votre SAS], protégé par le Code de la propriété intellectuelle. Toute reproduction ou représentation totale ou partielle sans autorisation écrite préalable est interdite.
+            L’ensemble des éléments composant le site <a href="https://talkiz.yt" class="text-primary">https://talkiz.yt</a> (marque Talkiz Video, logo, interface, textes, codes sources, architecture logicielle) est la propriété exclusive de [Dénomination sociale de votre SAS], protégé par le Code de la propriété intellectuelle. Toute reproduction ou représentation totale ou partielle sans autorisation écrite préalable est interdite.
           </p>
           <div class="legal-callout">
             <strong>Clause de non-affiliation :</strong> Talkiz Video est un service indépendant. Il n’est ni affilié, ni sponsorisé, ni approuvé par YouTube ou Google LLC. YouTube est une marque déposée de Google LLC. Les vidéos visionnées via le lecteur officiel YouTube intégré demeurent la propriété exclusive de leurs titulaires de droits respectifs.
@@ -136,7 +136,7 @@
           Legal Notice
         </h1>
         <p class="text-caption text-grey-darken-1 mb-6">
-          Website: <a href="https://video.talkiz.ai" class="text-primary">https://video.talkiz.ai</a> &bull; Last updated: [Date]
+          Website: <a href="https://talkiz.yt" class="text-primary">https://talkiz.yt</a> &bull; Last updated: [Date]
         </p>
 
         <v-divider class="mb-6" />
@@ -144,7 +144,7 @@
         <section class="legal-section mb-7">
           <h2 class="text-h6 font-weight-bold mb-3">1. Website Publisher</h2>
           <p>
-            The website <a href="https://video.talkiz.ai" class="text-primary">https://video.talkiz.ai</a> (<strong>Talkiz Video</strong> service) is published by:
+            The website <a href="https://talkiz.yt" class="text-primary">https://talkiz.yt</a> (<strong>Talkiz Video</strong> service) is published by:
           </p>
           <ul class="legal-list mb-0">
             <li><strong>Company name:</strong> [Company Name]</li>
@@ -178,7 +178,7 @@
         <section class="legal-section mb-7">
           <h2 class="text-h6 font-weight-bold mb-3">3. Intellectual Property and Non-Affiliation</h2>
           <p>
-            All elements comprising the website <a href="https://video.talkiz.ai" class="text-primary">https://video.talkiz.ai</a> (Talkiz Video trademark, logo, interface, texts, source code, software architecture) are the exclusive property of [Company Name] and are protected under intellectual property law. Any total or partial reproduction or representation without prior written authorization is prohibited.
+            All elements comprising the website <a href="https://talkiz.yt" class="text-primary">https://talkiz.yt</a> (Talkiz Video trademark, logo, interface, texts, source code, software architecture) are the exclusive property of [Company Name] and are protected under intellectual property law. Any total or partial reproduction or representation without prior written authorization is prohibited.
           </p>
           <div class="legal-callout">
             <strong>Non-affiliation clause:</strong> Talkiz Video is an independent service. It is not affiliated with, sponsored by, or endorsed by YouTube or Google LLC. YouTube is a registered trademark of Google LLC. Videos viewed through the embedded official YouTube player remain the exclusive property of their respective rights holders.

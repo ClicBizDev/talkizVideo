@@ -81,8 +81,8 @@ export default {
       'You are interacting with an artificial intelligence. Responses may contain inaccuracies: always verify important information in the original video.',
     micConsent: {
       title: 'Microphone activation',
-      bodyBefore: 'To answer your spoken questions, your voice stream is transmitted in real time to our technical provider ',
-      bodyProvider: 'OpenAI',
+      bodyBefore: 'To answer your spoken questions, your voice stream is transmitted in real time to our technical providers ',
+      bodyProvider: 'OpenAI and Google',
       bodyAfter:
         ' (United States, not used for model training). Your voice is not recorded or stored as an audio file on our servers.',
       privacyLink: 'Read our Privacy Policy',
@@ -187,16 +187,16 @@ export default {
         tagline: 'Monthly subscription for regular YouTube learning & research',
         durationLine: '1 hour (60 min) / month',
       },
-        pack5h: {
-          name: 'Pack +5h',
-          tagline: 'Extra conversation time — never expires',
-          durationLine: '5 hours (300 min) top-up',
-        },
-        pack10h: {
-          name: 'Pack +10h',
-          tagline: 'Best value top-up for heavy users & teams',
-          durationLine: '10 hours (600 min) top-up',
-        },
+      pack5h: {
+        name: 'Pack +5h',
+        tagline: 'Extra conversation time — never expires',
+        durationLine: '5 hours (300 min) top-up',
+      },
+      pack10h: {
+        name: 'Pack +10h',
+        tagline: 'Best value top-up for heavy users & teams',
+        durationLine: '10 hours (600 min) top-up',
       },
     },
-  }
+  },
+}

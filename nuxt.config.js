@@ -45,7 +45,7 @@ export default defineNuxtConfig({
     runtimeConfig: {
         public: {
             API_URL: process.env.NUXT_PUBLIC_API_URL || 'http://localhost:3091/api',
-            SHARE_BASE_URL: process.env.NUXT_PUBLIC_SHARE_BASE_URL || 'https://video.talkiz.ai',
+            SHARE_BASE_URL: process.env.NUXT_PUBLIC_SHARE_BASE_URL || 'https://talkiz.yt',
             STRIPE_LINK_STANDARD: process.env.NUXT_PUBLIC_STRIPE_LINK_STANDARD || '',
             STRIPE_LINK_PACK_5H: process.env.NUXT_PUBLIC_STRIPE_LINK_PACK_5H || process.env.NUXT_PUBLIC_STRIPE_LINK_STARTER || '',
             STRIPE_LINK_PACK_10H: process.env.NUXT_PUBLIC_STRIPE_LINK_PACK_10H || process.env.NUXT_PUBLIC_STRIPE_LINK_PRO || '',

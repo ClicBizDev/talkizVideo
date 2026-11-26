@@ -54,7 +54,7 @@
           Conditions Générales d'Utilisation et de Vente (CGU / CGV)
         </h1>
         <p class="text-caption text-grey-darken-1 mb-6">
-          Service : Talkiz Video (<a href="https://video.talkiz.ai" class="text-primary">https://video.talkiz.ai</a>) &bull; Dernière mise à jour : [Date]
+          Service : Talkiz Video (<a href="https://talkiz.yt" class="text-primary">https://talkiz.yt</a>) &bull; Dernière mise à jour : [Date]
         </p>
 
         <v-divider class="mb-6" />
@@ -62,7 +62,7 @@
         <section class="legal-section mb-7">
           <h2 class="text-h6 font-weight-bold mb-3">Article 1 – Objet et mentions légales</h2>
           <p>
-            Les présentes Conditions Générales d’Utilisation et de Vente (ci-après les « CGU/CGV ») régissent l’accès et l’utilisation du service en ligne <strong>Talkiz Video</strong>, accessible à l’adresse <a href="https://video.talkiz.ai" class="text-primary">https://video.talkiz.ai</a> (ci-après le « Service »), édité par :
+            Les présentes Conditions Générales d’Utilisation et de Vente (ci-après les « CGU/CGV ») régissent l’accès et l’utilisation du service en ligne <strong>Talkiz Video</strong>, accessible à l’adresse <a href="https://talkiz.yt" class="text-primary">https://talkiz.yt</a> (ci-après le « Service »), édité par :
           </p>
           <ul class="legal-list mb-3">
             <li><strong>Société</strong> : [Dénomination sociale de votre SAS], SAS au capital de [Montant] €, immatriculée au RCS de [Ville] sous le numéro [SIRET/SIREN], TVA intracommunautaire [Numéro].</li>
@@ -197,7 +197,7 @@
           Terms of Use and Sale
         </h1>
         <p class="text-caption text-grey-darken-1 mb-6">
-          Service: Talkiz Video (<a href="https://video.talkiz.ai" class="text-primary">https://video.talkiz.ai</a>) &bull; Last updated: [Date]
+          Service: Talkiz Video (<a href="https://talkiz.yt" class="text-primary">https://talkiz.yt</a>) &bull; Last updated: [Date]
         </p>
 
         <v-divider class="mb-6" />
@@ -205,7 +205,7 @@
         <section class="legal-section mb-7">
           <h2 class="text-h6 font-weight-bold mb-3">Article 1 – Purpose and Legal Information</h2>
           <p>
-            These General Terms of Use and Sale (hereinafter the "Terms") govern access to and use of the online service <strong>Talkiz Video</strong>, accessible at <a href="https://video.talkiz.ai" class="text-primary">https://video.talkiz.ai</a> (hereinafter the "Service"), published by:
+            These General Terms of Use and Sale (hereinafter the "Terms") govern access to and use of the online service <strong>Talkiz Video</strong>, accessible at <a href="https://talkiz.yt" class="text-primary">https://talkiz.yt</a> (hereinafter the "Service"), published by:
           </p>
           <ul class="legal-list mb-3">
             <li><strong>Company</strong>: [Company Name], French SAS with share capital of €[Amount], registered with the Trade and Companies Register of [City] under number [SIRET/SIREN], EU VAT number [VAT Number].</li>

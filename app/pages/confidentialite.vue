@@ -54,7 +54,7 @@
           Politique de Confidentialité (RGPD)
         </h1>
         <p class="text-caption text-grey-darken-1 mb-6">
-          Service : Talkiz Video (<a href="https://video.talkiz.ai" class="text-primary">https://video.talkiz.ai</a>) &bull; Dernière mise à jour : [Date]
+          Service : Talkiz Video (<a href="https://talkiz.yt" class="text-primary">https://talkiz.yt</a>) &bull; Dernière mise à jour : [Date]
         </p>
 
         <v-divider class="mb-6" />
@@ -62,7 +62,7 @@
         <section class="legal-section mb-7">
           <h2 class="text-h6 font-weight-bold mb-3">1. Responsable de traitement</h2>
           <p>
-            Le responsable du traitement des données personnelles collectées sur <a href="https://video.talkiz.ai" class="text-primary">https://video.talkiz.ai</a> est la société <strong>[Dénomination sociale de votre SAS]</strong>, domiciliée au [Adresse complète].
+            Le responsable du traitement des données personnelles collectées sur <a href="https://talkiz.yt" class="text-primary">https://talkiz.yt</a> est la société <strong>[Dénomination sociale de votre SAS]</strong>, domiciliée au [Adresse complète].
           </p>
           <p class="mb-0">
             Pour toute question relative à vos données personnelles ou pour exercer vos droits : <a href="mailto:privacy@talkiz.ai" class="text-primary">[privacy@talkiz.ai]</a>.
@@ -191,7 +191,7 @@
           Privacy Policy (GDPR)
         </h1>
         <p class="text-caption text-grey-darken-1 mb-6">
-          Service: Talkiz Video (<a href="https://video.talkiz.ai" class="text-primary">https://video.talkiz.ai</a>) &bull; Last updated: [Date]
+          Service: Talkiz Video (<a href="https://talkiz.yt" class="text-primary">https://talkiz.yt</a>) &bull; Last updated: [Date]
         </p>
 
         <v-divider class="mb-6" />
@@ -199,7 +199,7 @@
         <section class="legal-section mb-7">
           <h2 class="text-h6 font-weight-bold mb-3">1. Data Controller</h2>
           <p>
-            The data controller for personal data collected on <a href="https://video.talkiz.ai" class="text-primary">https://video.talkiz.ai</a> is <strong>[Company Name]</strong>, located at [Full Address].
+            The data controller for personal data collected on <a href="https://talkiz.yt" class="text-primary">https://talkiz.yt</a> is <strong>[Company Name]</strong>, located at [Full Address].
           </p>
           <p class="mb-0">
             For any questions regarding your personal data or to exercise your rights: <a href="mailto:privacy@talkiz.ai" class="text-primary">[privacy@talkiz.ai]</a>.
