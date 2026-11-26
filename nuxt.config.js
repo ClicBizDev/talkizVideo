@@ -6,6 +6,7 @@ export default defineNuxtConfig({
         compatibilityVersion: 4,
     },
     ssr: false,
+    spaLoadingTemplate: 'spa-loading-template.html',
 
     app: {
         head: {

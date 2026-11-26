@@ -39,6 +39,8 @@
             <img
               src="/logo-talkiz-icon.svg?v=6"
               alt="Talkiz.yt"
+              width="34"
+              height="34"
               class="brand-icon flex-shrink-0"
             />
             <span class="brand-wordmark" :class="{ 'd-none d-sm-inline': authStore.isAuthenticated }">
