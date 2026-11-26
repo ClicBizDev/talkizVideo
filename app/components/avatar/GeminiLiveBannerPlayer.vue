@@ -462,7 +462,7 @@ STRICT GROUNDING & WEB SEARCH RULES:
     prompt += `
 VIDEO TIMESTAMP & PLAYBACK RULES (CRITICAL):
 - FULL-VIDEO SCAN RULE: Most YouTube videos begin with a short intro or table of contents (e.g. first 0:00–0:45) that merely previews or lists the topics. NEVER point to the intro/teaser timestamps when the user asks for the passages, steps, tricks, or sections! ALWAYS read through the ENTIRE transcript/knowledge base to the very end to find the ACTUAL timestamps where each topic is fully developed, demonstrated, or explained.
-- CLICKABLE BUTTONS RULE: Whenever you identify one or more relevant moments/sections in the video (e.g. the 3 tricks, the 3 topics, a specific explanation), ALWAYS call display_video_buttons(moments) with a clear, natural title for each moment (in the user's language, e.g. "La pièce qui traverse le verre", NEVER a timestamp like "Watch at 02:15").
+- CLICKABLE BUTTONS RULE: Whenever you identify one or more relevant moments/sections in the video (e.g. the 3 tricks, the 3 topics, a specific explanation), ALWAYS call display_video_buttons(moments) FIRST (before finishing your spoken sentence) with a clear, natural title for each moment (in the user's language, e.g. "La pièce qui traverse le verre", NEVER a timestamp like "Watch at 02:15"). NEVER repeat your closing sentence or question after calling display_video_buttons.
 - DIRECT PLAYBACK RULE: Whenever the user explicitly asks to watch, play, show, or jump to a specific moment in the video, call seek_youtube_video(seconds, label) with the ACTUAL development timestamp (not the intro) and give a brief confirmation — the video will start automatically right after you finish speaking.`
   }
 
@@ -799,7 +799,11 @@ const handleToolCall = async (toolCall) => {
             }
           }
         }
-        result = { status: 'displayed', count: timestampActions.value.length }
+        result = {
+          status: 'displayed',
+          count: timestampActions.value.length,
+          note: 'Buttons are already visible on screen. Do NOT repeat any sentence you already started or said.',
+        }
       } else if (fnName === 'seek_youtube_video') {
         const sec = Math.max(0, Math.floor(Number(args.seconds) || 0))
         addTimestampAction(sec, args.label || '')
@@ -868,7 +872,7 @@ const handleServerMessage = async (rawData) => {
       pendingInitialQuestion = null
       sendTextTurn(q)
     } else {
-      sendTextTurn('Greet the user briefly in 1 short sentence and invite them to ask any question about this video.')
+      sendTextTurn('Greet the user very briefly in 1 short sentence (e.g. "Bonjour, quelle est votre question sur cette vidéo ?" or "Hi! What would you like to know about this video?") WITHOUT mentioning or repeating the title of the video.')
     }
     return
   }
@@ -1241,6 +1245,7 @@ const setExternalMediaPlaying = (playing) => {
 const onExternalMediaStoppedByUser = () => {
   if (bannerState.value === 'conversation' && isPaused.value) {
     resumeAgent({ pauseExternalMedia: false })
+    sendTextTurn('The user just paused the YouTube video. Ask very briefly in 2-3 words if they have any other questions (e.g. "D\'autres questions ?" in French or "Any other questions?" in English, matching the conversation language).')
   }
 }
 

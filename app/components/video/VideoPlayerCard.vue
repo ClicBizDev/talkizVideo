@@ -459,6 +459,10 @@ const seekYoutubeVideo = (seconds) => {
   clearYoutubeUserPauseTimer()
   programmaticYoutubeActionUntil = Date.now() + 1500
   const sec = Math.max(0, Math.floor(Number(seconds) || 0))
+  // On mobile / narrow screens, scroll smoothly to the top so the full YouTube player is visible
+  if (typeof window !== 'undefined' && window.innerWidth < 1024) {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
   if (agentPlayer.value) {
     if (typeof agentPlayer.value.pauseAgent === 'function') {
       agentPlayer.value.pauseAgent()
