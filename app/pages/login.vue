@@ -2,17 +2,14 @@
   <div class="login-backdrop d-flex align-center justify-center pa-4">
     <div class="login-card">
       <!-- Brand badge -->
-      <div class="d-flex align-center justify-center ga-3 mb-5">
+      <div class="d-flex align-center justify-center mb-5">
         <img
-          src="/logo-talkiz-icon.svg?v=6"
-          alt="Talkiz"
-          width="40"
-          height="40"
-          style="height: 2.5rem; width: 2.5rem; background-color: #E51919; border-radius: 0.75rem; padding: 5px; box-shadow: 0 1px 2px 0 rgba(0,0,0,0.05);"
+          src="/logo-talkiz-yt.svg?v=1"
+          alt="Talkiz.yt"
+          width="198"
+          height="46"
+          style="height: 46px; width: auto; display: block;"
         />
-        <span style="font-size: 2rem; line-height: 2.25rem; font-weight: 700; color: #3b82f6; letter-spacing: -0.025em; -webkit-font-smoothing: antialiased;">
-          Talkiz<span style="color: #E51919;">.yt</span>
-        </span>
       </div>
 
       <!-- Heading (OpusClip-inspired layout) -->
@@ -46,7 +43,7 @@
       <!-- Google OAuth button -->
       <button
         type="button"
-        class="oauth-btn mb-3"
+        class="oauth-btn mb-5"
         :disabled="loadingGoogle"
         @click="loginWithGoogle"
       >
@@ -59,7 +56,7 @@
         <span>{{ loadingGoogle ? t('login.redirectingGoogle') : t('login.continueGoogle') }}</span>
       </button>
 
-      <!-- Apple OAuth button (ready for when Apple provider is enabled in Supabase) -->
+      <!-- Apple OAuth button (hidden until Apple Developer provider is enabled in Supabase)
       <button
         type="button"
         class="oauth-btn mb-5"
@@ -69,13 +66,13 @@
         <v-icon size="22" color="white" class="mr-3">mdi-apple</v-icon>
         <span>{{ t('login.continueApple') }}</span>
       </button>
+      -->
 
-      <!-- Separator -->
+      <!-- Email / Magic Link login (hidden until Custom SMTP is configured in Supabase)
       <div class="divider-row mb-5">
         <span>{{ t('login.orEmail') }}</span>
       </div>
 
-      <!-- Email input + button -->
       <form @submit.prevent="loginWithEmail">
         <input
           v-model="email"
@@ -102,16 +99,9 @@
           {{ loadingEmail ? t('login.signingIn') : (usePasswordMode ? t('login.signIn') : t('login.continueEmail')) }}
         </button>
       </form>
+      -->
 
-      <div class="text-center mt-4">
-        <button
-          type="button"
-          class="mode-toggle-link"
-          @click="usePasswordMode = !usePasswordMode"
-        >
-          {{ usePasswordMode ? t('login.useMagicLink') : t('login.usePassword') }}
-        </button>
-      </div>
+      <!-- Password mode toggle hidden (Talkiz.yt uses Google OAuth & Magic Link only) -->
 
       <!-- Legal footer -->
       <p class="legal-note text-center mt-6 mb-2">

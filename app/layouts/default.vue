@@ -36,16 +36,24 @@
             class="d-flex align-center text-decoration-none ml-1 brand-link"
             @click="goHome"
           >
+            <!-- Compact square icon on mobile when logged in -->
             <img
+              v-if="authStore.isAuthenticated"
               src="/logo-talkiz-icon.svg?v=6"
               alt="Talkiz.yt"
               width="34"
               height="34"
-              class="brand-icon flex-shrink-0"
+              class="brand-icon d-inline-block d-sm-none flex-shrink-0"
             />
-            <span class="brand-wordmark" :class="{ 'd-none d-sm-inline': authStore.isAuthenticated }">
-              Talkiz<span class="brand-tld">.yt</span>
-            </span>
+            <!-- Full crisp vector logo (Talkiz.yt) -->
+            <img
+              src="/logo-talkiz-yt.svg?v=1"
+              alt="Talkiz.yt"
+              width="172"
+              height="40"
+              class="brand-full-logo flex-shrink-0"
+              :class="{ 'd-none d-sm-inline-block': authStore.isAuthenticated }"
+            />
           </NuxtLink>
         </div>
 
@@ -304,6 +312,7 @@ const submitHeaderUrl = () => {
 }
 
 let authListener = null
+let creditsRefreshInterval = null
 
 onMounted(() => {
   const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
@@ -320,10 +329,21 @@ onMounted(() => {
     }
   })
   authListener = data.subscription
+
+  // Silently refresh remaining conversation time every 30 seconds while tab is visible
+  creditsRefreshInterval = setInterval(() => {
+    if (authStore.isAuthenticated && typeof document !== 'undefined' && !document.hidden) {
+      authStore.refreshCredits(supabase, { silent: true })
+    }
+  }, 30000)
 })
 
 onUnmounted(() => {
   if (authListener) authListener.unsubscribe()
+  if (creditsRefreshInterval) {
+    clearInterval(creditsRefreshInterval)
+    creditsRefreshInterval = null
+  }
 })
 </script>
 
@@ -341,6 +361,18 @@ onUnmounted(() => {
   padding: 4px;
   box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.06);
   box-sizing: border-box;
+}
+
+.brand-full-logo {
+  height: 36px;
+  width: auto;
+  display: block;
+}
+
+@media (min-width: 600px) {
+  .brand-full-logo {
+    height: 44px;
+  }
 }
 
 .brand-wordmark {

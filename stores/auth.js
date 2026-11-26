@@ -88,9 +88,9 @@ export const useAuthStore = defineStore('auth', {
                 return true
             },
 
-        async refreshCredits(supabase) {
+        async refreshCredits(supabase, { silent = false } = {}) {
                 if (!this.clientUid) return
-                this.isRefreshingCredits = true
+                if (!silent) this.isRefreshingCredits = true
                 try {
                     const { data, error } = await supabase
                         .from('clients')
@@ -116,7 +116,7 @@ export const useAuthStore = defineStore('auth', {
                 } catch (err) {
                     console.error('[AuthStore] Failed to fetch credits:', err)
                 } finally {
-                    this.isRefreshingCredits = false
+                    if (!silent) this.isRefreshingCredits = false
                 }
             },
 
