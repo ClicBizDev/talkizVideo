@@ -303,6 +303,32 @@ const jumpToTimestamp = (seconds) => {
   emit('seek-youtube', sec)
 }
 
+const extractTimestampsFromText = (text) => {
+  if (!text) return []
+  const found = []
+  // 1. Digital clock formats: HH:MM:SS or MM:SS (e.g. 02:15, 1:05:30)
+  const clockRe = /\b(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\b/g
+  let m
+  while ((m = clockRe.exec(text)) !== null) {
+    const h = m[1] ? parseInt(m[1], 10) : 0
+    const min = parseInt(m[2], 10)
+    const sec = parseInt(m[3], 10)
+    if (min < 60 && sec < 60) {
+      found.push(h * 3600 + min * 60 + sec)
+    }
+  }
+  // 2. Spoken minutes + optional seconds (FR/EN): "2 minutes 15", "2 minutes et 15 secondes", "1 minute 30"
+  const spokenMinRe = /\b(\d{1,2})\s*(?:minutes?|mins?)\s*(?:(?:et|and)\s*)?(?:(\d{1,2})\s*(?:secondes?|seconds?|secs?)?)?/gi
+  while ((m = spokenMinRe.exec(text)) !== null) {
+    const min = parseInt(m[1], 10)
+    const sec = m[2] ? parseInt(m[2], 10) : 0
+    if (min < 180 && sec < 60) {
+      found.push(min * 60 + sec)
+    }
+  }
+  return found
+}
+
 const flushPendingSeekIfReady = () => {
   if (pendingSeekSeconds === null) return
   if (activePlaybackSources.length > 0) return
@@ -310,10 +336,34 @@ const flushPendingSeekIfReady = () => {
   pendingSeekSeconds = null
   turnCompletedForPendingSeek = false
   if (pendingSeekFallbackTimer) {
-    clearTimeout(pendingSeekFallbackTimer)
+    clearInterval(pendingSeekFallbackTimer)
     pendingSeekFallbackTimer = null
   }
   emit('seek-youtube', sec)
+}
+
+const scheduleSeekAfterSpeech = (sec) => {
+  pendingSeekSeconds = sec
+  turnCompletedForPendingSeek = false
+  const scheduledAt = Date.now()
+  if (pendingSeekFallbackTimer) clearInterval(pendingSeekFallbackTimer)
+  pendingSeekFallbackTimer = setInterval(() => {
+    if (pendingSeekSeconds === null) {
+      clearInterval(pendingSeekFallbackTimer)
+      pendingSeekFallbackTimer = null
+      return
+    }
+    const elapsed = Date.now() - scheduledAt
+    // Trigger as soon as speech ends (after a minimum 900ms grace period) or hard cap at 12s
+    if ((elapsed >= 900 && activePlaybackSources.length === 0) || elapsed >= 12000) {
+      const target = pendingSeekSeconds
+      pendingSeekSeconds = null
+      turnCompletedForPendingSeek = false
+      clearInterval(pendingSeekFallbackTimer)
+      pendingSeekFallbackTimer = null
+      emit('seek-youtube', target)
+    }
+  }, 300)
 }
 
 const usageTotals = {
@@ -350,8 +400,8 @@ STRICT GROUNDING & WEB SEARCH RULES:
   if (props.hasEmbeddedYoutubePlayer) {
     prompt += `
 VIDEO TIMESTAMP & PLAYBACK RULES:
-- Whenever your answer refers to a specific moment or topic in the video with a known timestamp, ALWAYS call show_video_moment(seconds, label) so a clickable jump button appears for the user, WITHOUT interrupting playback.
-- ONLY when the user explicitly asks to watch, play, show, or jump to a moment in the video, call seek_youtube_video(seconds, label) and briefly finish your sentence (the video will automatically start right after you finish speaking).`
+- Whenever you mention a moment from the video, state its exact timestamp (e.g. "2:15").
+- Whenever the user asks to show, watch, play, or jump to a moment in the video, you MUST call seek_youtube_video(seconds, label) with the exact timestamp in seconds. Then give a very brief confirmation (e.g. "Je lance la vidéo à 2 minutes 15.") — the video will start automatically right after you finish speaking.`
   }
 
   if (useRag.value) {
@@ -393,20 +443,8 @@ const buildToolDeclarations = () => {
 
   if (props.hasEmbeddedYoutubePlayer) {
     decls.push({
-      name: 'show_video_moment',
-      description: 'Display a clickable timestamp button so the user can jump directly to a relevant moment of the video while keeping the conversation active.',
-      parameters: {
-        type: 'OBJECT',
-        properties: {
-          seconds: { type: 'NUMBER', description: 'Timestamp in seconds from the start of the video' },
-          label: { type: 'STRING', description: 'Short 3-6 word description of what happens at this timestamp (in the user language)' },
-        },
-        required: ['seconds', 'label'],
-      },
-    })
-    decls.push({
       name: 'seek_youtube_video',
-      description: 'Jump and play the embedded YouTube video at a specific timestamp in seconds (use ONLY when the user explicitly asks to watch or jump to a moment).',
+      description: 'Jump and play the embedded YouTube video at a specific timestamp in seconds. MUST be called whenever the user asks to show, watch, play, or go to a moment in the video.',
       parameters: {
         type: 'OBJECT',
         properties: {
@@ -650,23 +688,11 @@ const handleToolCall = async (toolCall) => {
         result = {
           context: chunks.map((c) => c.content || c).join('\n\n') || 'No matching passage found in the video.',
         }
-      } else if (fnName === 'show_video_moment') {
-        const sec = Math.max(0, Math.floor(Number(args.seconds) || 0))
-        addTimestampAction(sec, args.label || '')
-        result = { status: 'displayed', seconds: sec, clock: formatClock(sec) }
       } else if (fnName === 'seek_youtube_video') {
         const sec = Math.max(0, Math.floor(Number(args.seconds) || 0))
         addTimestampAction(sec, args.label || '')
         // Defer video start until Gemini finishes speaking its current sentence
-        pendingSeekSeconds = sec
-        turnCompletedForPendingSeek = false
-        if (pendingSeekFallbackTimer) clearTimeout(pendingSeekFallbackTimer)
-        pendingSeekFallbackTimer = setTimeout(() => {
-          pendingSeekFallbackTimer = null
-          if (pendingSeekSeconds !== null && activePlaybackSources.length === 0) {
-            flushPendingSeekIfReady()
-          }
-        }, 4500)
+        scheduleSeekAfterSpeech(sec)
         result = { status: 'scheduled_after_speech', seconds: sec, clock: formatClock(sec) }
       } else if (fnName === 'end_conversation') {
         result = { status: 'closing' }
@@ -754,6 +780,12 @@ const handleServerMessage = async (rawData) => {
   }
   if (sc.outputTranscription?.text) {
     currentAiTranscript += sc.outputTranscription.text
+    if (props.hasEmbeddedYoutubePlayer) {
+      const detected = extractTimestampsFromText(currentAiTranscript)
+      for (const sec of detected) {
+        addTimestampAction(sec)
+      }
+    }
   }
 
   if (sc.groundingMetadata) {
@@ -770,13 +802,30 @@ const handleServerMessage = async (rawData) => {
 
   if (sc.turnComplete) {
     userSpokeSinceLastTurn = false
-    if (currentUserTranscript.trim()) {
-      transcriptEntries.push({ role: 'user', text: currentUserTranscript.trim() })
+    const lastUserText = currentUserTranscript.trim()
+    const lastAiText = currentAiTranscript.trim()
+    if (lastUserText) {
+      transcriptEntries.push({ role: 'user', text: lastUserText })
       currentUserTranscript = ''
     }
-    if (currentAiTranscript.trim()) {
-      transcriptEntries.push({ role: 'assistant', text: currentAiTranscript.trim() })
+    if (lastAiText) {
+      transcriptEntries.push({ role: 'assistant', text: lastAiText })
       currentAiTranscript = ''
+      // Always extract any spoken timestamps into clickable jump buttons
+      if (props.hasEmbeddedYoutubePlayer) {
+        const detected = extractTimestampsFromText(lastAiText)
+        for (const sec of detected) {
+          addTimestampAction(sec)
+        }
+        // Fallback: if user explicitly asked to show/watch/play and Gemini spoke a timestamp without calling seek_youtube_video
+        if (
+          pendingSeekSeconds === null &&
+          detected.length > 0 &&
+          /\b(montre|montrer|regarde|regarder|voir|lance|lancer|mets|mettre|aller|show|watch|play|jump|go to)\b/i.test(lastUserText)
+        ) {
+          scheduleSeekAfterSpeech(detected[0])
+        }
+      }
     }
     if (pendingSeekSeconds !== null) {
       turnCompletedForPendingSeek = true
@@ -808,7 +857,7 @@ const startSession = async (initialQuestion = null, forcedVoice = null) => {
   pendingSeekSeconds = null
   turnCompletedForPendingSeek = false
   if (pendingSeekFallbackTimer) {
-    clearTimeout(pendingSeekFallbackTimer)
+    clearInterval(pendingSeekFallbackTimer)
     pendingSeekFallbackTimer = null
   }
   userSpokeSinceLastTurn = false
