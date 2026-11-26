@@ -36,7 +36,7 @@
     <div class="banner-top-section" :style="topSectionStyle">
       <!-- Left Zone: Suggested Questions & Invitation -->
       <div class="banner-content" :style="contentStyle">
-        <div v-if="bannerState === 'initial'" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto;">
+        <div v-if="bannerState === 'initial'" style="display: flex; flex-direction: column; gap: 8px; overflow-y: auto;">
           <div v-if="activeSuggestedQuestions.length > 0" class="suggested-questions">
             <button
               v-for="(q, idx) in activeSuggestedQuestions"
@@ -199,16 +199,19 @@ const effectiveTextColor = computed(() => {
 
 const bannerStyle = computed(() => ({
   width: props.width,
-  minHeight: props.height,
+  height: props.height === '100%' ? '100%' : undefined,
+  minHeight: props.height === '100%' ? '220px' : props.height,
   backgroundColor: effectiveBgColor.value,
   color: effectiveTextColor.value,
   borderRadius: props.borderRadius,
   border: '1px solid #e2e8f0',
   boxShadow: '0 4px 14px rgba(15, 23, 42, 0.08)',
-  padding: '14px 16px',
+  padding: '16px',
   position: 'relative',
   cursor: bannerState.value === 'initial' ? 'pointer' : 'default',
   boxSizing: 'border-box',
+  display: 'flex',
+  flexDirection: 'column',
 }))
 
 const topSectionStyle = computed(() => ({
@@ -1238,12 +1241,12 @@ defineExpose({
 .timestamp-actions-box {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   width: 100%;
-  margin-top: 10px;
-  padding-top: 8px;
+  margin-top: 12px;
+  padding-top: 10px;
   border-top: 1px solid rgba(15, 23, 42, 0.08);
-  max-height: 140px;
+  flex: 1;
   overflow-y: auto;
 }
 

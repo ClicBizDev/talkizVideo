@@ -70,10 +70,12 @@
           </div>
           <v-btn
             icon
-            color="#2196F3"
+            color="primary"
+            variant="flat"
             size="38"
             elevation="1"
             class="flex-shrink-0"
+            style="background-color: #2196F3 !important;"
             :loading="videosStore.isProcessingUrl"
             :disabled="videosStore.isProcessingUrl"
             :title="t('home.analyzeTooltip')"
@@ -189,10 +191,12 @@
         </div>
         <v-btn
           icon
-          color="#2196F3"
+          color="primary"
+          variant="flat"
           size="40"
           elevation="1"
           class="flex-shrink-0"
+          style="background-color: #2196F3 !important;"
           :loading="videosStore.isProcessingUrl"
           :disabled="videosStore.isProcessingUrl"
           :title="t('home.analyzeTooltip')"
@@ -207,7 +211,7 @@
       </div>
 
       <!-- Legal Footer -->
-      <footer class="legal-footer px-4 py-4 text-center">
+      <footer class="legal-footer px-4 py-2 text-center">
         <div class="d-flex flex-wrap justify-center align-center ga-2 text-caption" style="color: #64748b;">
           <span>{{ t('footer.copyright') }}</span>
           <span class="d-none d-sm-inline">&bull;</span>

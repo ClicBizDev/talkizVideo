@@ -972,9 +972,10 @@ onUnmounted(() => {
 }
 
 .my-videos-sidebar {
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.94);
   border: 1px solid #e2e8f0;
   box-shadow: 0 2px 10px rgba(15, 23, 42, 0.05);
+  min-height: 100%;
 }
 
 .my-videos-list {

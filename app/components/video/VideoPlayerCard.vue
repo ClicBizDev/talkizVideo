@@ -128,9 +128,9 @@
       <!-- Talkiz Voice Agent Player (strictly disabled if YouTube embed is blocked by creator) -->
       <div
         v-else-if="!embedBlocked"
-        class="w-100 d-flex flex-column align-center"
+        class="agent-column-inner w-100 d-flex flex-column"
       >
-        <div class="w-100" @click.capture="onPlayerAreaClick">
+        <div class="agent-player-slot w-100 flex-grow-1 d-flex flex-column" @click.capture="onPlayerAreaClick">
           <component
             :is="playerComponent"
             :key="project.proj_uid"
@@ -139,8 +139,8 @@
             :clientUid="project.proj_client_uid || project.client_uid"
             :projectUid="project.proj_uid"
             width="100%"
-            :height="project.proj_link_height || '150px'"
-            style="width: 100%; max-width: 100%;"
+            height="100%"
+            style="width: 100%; max-width: 100%; flex: 1;"
             :bgColor="project.proj_link_display_bg_color || 'white'"
             :bgCustom="project.proj_link_display_bg_custom || '#FFFFFF'"
             :textColor="project.proj_link_display_text_color || 'black'"
@@ -165,10 +165,10 @@
           />
         </div>
 
-        <!-- AI Act Transparency Notice (permanently visible below the voice assistant card) -->
+        <!-- AI Act Transparency Notice (permanently visible at the bottom of the agent column) -->
         <div
-          class="d-flex align-start ga-2 mt-2 px-1 text-left w-100"
-          style="font-size: 11.5px; color: #475569; line-height: 1.45;"
+          class="d-flex align-start ga-2 mt-2 px-1 text-left w-100 flex-shrink-0"
+          style="font-size: 11.5px; color: #475569; line-height: 1.4;"
         >
           <v-icon size="15" color="#475569" class="mt-0 flex-shrink-0" style="margin-top: 2px;">mdi-information-outline</v-icon>
           <span>
@@ -518,8 +518,8 @@ onBeforeUnmount(() => {
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
   align-items: start;
-  max-width: 1460px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
 }
 
 .col-video-player {
@@ -537,19 +537,23 @@ onBeforeUnmount(() => {
   min-width: 0;
 }
 
-/* Wide screens (>= 1024px): Col 1 My Videos | Col 2 Large Video Player | Col 3 Talkiz Agent */
+/* Wide screens (>= 1024px): Full-width & full-height 3 columns */
 @media (min-width: 1024px) {
   .workspace-3col {
-    grid-template-columns: 250px minmax(0, 1fr) 360px;
-    gap: 20px;
+    grid-template-columns: 240px minmax(0, 1fr) 350px;
+    gap: 16px;
+    align-items: stretch;
+    min-height: calc(100vh - 150px);
   }
 
   .col-my-videos {
     order: 1;
     position: sticky;
-    top: 80px;
-    max-height: calc(100vh - 110px);
+    top: 76px;
+    height: calc(100vh - 150px);
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
   }
 
   .col-video-player {
@@ -559,14 +563,27 @@ onBeforeUnmount(() => {
   .col-talkiz-agent {
     order: 3;
     position: sticky;
-    top: 80px;
+    top: 76px;
+    height: calc(100vh - 150px);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .agent-column-inner {
+    height: 100%;
+    min-height: 0;
+  }
+
+  .agent-player-slot {
+    min-height: 0;
+    overflow-y: auto;
   }
 }
 
 @media (min-width: 1360px) {
   .workspace-3col {
-    grid-template-columns: 270px minmax(0, 1fr) 380px;
-    gap: 24px;
+    grid-template-columns: 260px minmax(0, 1fr) 380px;
+    gap: 20px;
   }
 }
 </style>
