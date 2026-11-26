@@ -1,173 +1,180 @@
 <template>
-  <div v-if="project" class="video-player-wrapper d-flex flex-column align-center w-100">
-    <!-- YouTube Video Player Card -->
-    <v-card
-      v-if="youtubeVideoId"
-      class="mb-3 mb-sm-4 link-preview-card overflow-hidden w-100"
-      variant="elevated"
-      :style="{
-        maxWidth: playerMaxWidth,
-        border: '1px solid #eaeaea',
-        borderRadius: project.proj_link_border_radius || '12px'
-      }"
-    >
-      <div style="position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000;">
-        <iframe
-          v-if="!embedBlocked"
-          ref="youtubeIframe"
-          :key="youtubeVideoId"
-          :src="youtubeEmbedUrl"
-          @load="onYoutubeIframeLoad"
-          style="position: absolute; inset: 0; width: 100%; height: 100%; border: 0;"
-          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-          allowfullscreen
-        ></iframe>
+  <div v-if="project" class="workspace-3col w-100">
+    <!-- Column 1 (Desktop left / Narrow below video+agent): My Videos sidebar slot -->
+    <div v-if="$slots.sidebar" class="col-my-videos">
+      <slot name="sidebar" />
+    </div>
 
-        <!-- Strict block when video owner disables embedding (YouTube error 101 / 150) -->
-        <div
-          v-else
-          style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden;"
-        >
-          <img
-            :src="youtubeThumbnailUrl"
-            :alt="videoTitle"
-            style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.28);"
-          />
+    <!-- Column 2 (Desktop center wide / Narrow top): YouTube Video Player Card -->
+    <div class="col-video-player">
+      <v-card
+        v-if="youtubeVideoId"
+        class="link-preview-card overflow-hidden w-100"
+        variant="elevated"
+        :style="{
+          border: '1px solid #e2e8f0',
+          borderRadius: project.proj_link_border_radius || '14px'
+        }"
+      >
+        <div style="position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000;">
+          <iframe
+            v-if="!embedBlocked"
+            ref="youtubeIframe"
+            :key="youtubeVideoId"
+            :src="youtubeEmbedUrl"
+            @load="onYoutubeIframeLoad"
+            style="position: absolute; inset: 0; width: 100%; height: 100%; border: 0;"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowfullscreen
+          ></iframe>
+
+          <!-- Strict block when video owner disables embedding (YouTube error 101 / 150) -->
           <div
-            class="d-flex flex-column align-center justify-center text-center pa-3 pa-sm-4"
-            style="position: absolute; inset: 0; color: white;"
+            v-else
+            style="position: absolute; inset: 0; width: 100%; height: 100%; overflow: hidden;"
           >
-            <v-icon color="warning" size="28" class="mb-2">mdi-block-helper</v-icon>
-            <div class="text-caption mb-3" style="max-width: 340px; color: rgba(255,255,255,0.95); line-height: 1.45;">
-              {{ t('player.embedDisabledNotice') }}
-            </div>
-            <v-btn
-              :href="youtubeWatchUrl"
-              target="_blank"
-              rel="noopener noreferrer"
-              color="white"
-              variant="flat"
-              rounded="pill"
-              size="small"
-              class="text-none font-weight-bold text-black px-4"
+            <img
+              :src="youtubeThumbnailUrl"
+              :alt="videoTitle"
+              style="width: 100%; height: 100%; object-fit: cover; filter: brightness(0.28);"
+            />
+            <div
+              class="d-flex flex-column align-center justify-center text-center pa-3 pa-sm-4"
+              style="position: absolute; inset: 0; color: white;"
             >
-              <v-icon start size="18">mdi-open-in-new</v-icon>
-              {{ t('player.watchOnYoutube') }}
-            </v-btn>
-          </div>
-        </div>
-      </div>
-
-      <v-card-text v-if="videoTitle" class="pa-3 d-flex align-center justify-space-between ga-2">
-        <div class="text-subtitle-2 font-weight-bold text-black d-flex align-center" style="line-height: 1.3; min-width: 0;">
-          <v-icon size="small" color="primary" class="mr-2 flex-shrink-0">mdi-play-circle-outline</v-icon>
-          <span style="display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-            {{ videoTitle }}
-          </span>
-        </div>
-        <div class="d-flex align-center flex-shrink-0">
-          <v-tooltip :text="t('player.watchOnYoutube')" location="top">
-            <template #activator="{ props: tooltipProps }">
+              <v-icon color="warning" size="28" class="mb-2">mdi-block-helper</v-icon>
+              <div class="text-caption mb-3" style="max-width: 340px; color: rgba(255,255,255,0.95); line-height: 1.45;">
+                {{ t('player.embedDisabledNotice') }}
+              </div>
               <v-btn
-                v-bind="tooltipProps"
-                icon
-                size="x-small"
-                variant="text"
-                color="grey-darken-1"
                 :href="youtubeWatchUrl"
                 target="_blank"
                 rel="noopener noreferrer"
-                :aria-label="t('player.watchOnYoutube')"
+                color="white"
+                variant="flat"
+                rounded="pill"
+                size="small"
+                class="text-none font-weight-bold text-black px-4"
               >
-                <v-icon size="18">mdi-open-in-new</v-icon>
+                <v-icon start size="18">mdi-open-in-new</v-icon>
+                {{ t('player.watchOnYoutube') }}
               </v-btn>
-            </template>
-          </v-tooltip>
+            </div>
+          </div>
         </div>
-      </v-card-text>
-    </v-card>
 
-    <!-- No-credits blocking alert (when user has 0 credits) -->
-    <v-card
-      v-if="creditsDepleted"
-      variant="outlined"
-      class="mb-4 pa-4 pa-sm-5 text-center w-100"
-      :style="{
-        maxWidth: playerMaxWidth,
-        borderColor: '#fecaca',
-        background: '#fef2f2',
-        borderRadius: project.proj_link_border_radius || '12px'
-      }"
-    >
-      <v-icon color="error" size="36" class="mb-2">mdi-clock-alert-outline</v-icon>
-      <div class="text-subtitle-1 font-weight-bold text-red-darken-2 mb-1">
-        {{ t('player.creditsDepletedTitle') }}
-      </div>
-      <div class="text-body-2 text-grey-darken-2 mb-4">
-        {{ t('player.creditsDepletedSubtitle') }}
-      </div>
-      <v-btn
-        color="var(--talkizColorBtn)"
-        class="text-white font-weight-bold"
-        rounded="pill"
-        elevation="2"
-        to="/billing"
+        <v-card-text v-if="videoTitle" class="pa-3 pa-sm-4 d-flex align-center justify-space-between ga-2" style="background: #ffffff;">
+          <div class="text-subtitle-1 font-weight-bold text-black d-flex align-center" style="line-height: 1.3; min-width: 0;">
+            <v-icon size="20" color="primary" class="mr-2 flex-shrink-0">mdi-play-circle-outline</v-icon>
+            <span style="display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+              {{ videoTitle }}
+            </span>
+          </div>
+          <div class="d-flex align-center flex-shrink-0">
+            <v-tooltip :text="t('player.watchOnYoutube')" location="top">
+              <template #activator="{ props: tooltipProps }">
+                <v-btn
+                  v-bind="tooltipProps"
+                  icon
+                  size="small"
+                  variant="text"
+                  color="grey-darken-1"
+                  :href="youtubeWatchUrl"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  :aria-label="t('player.watchOnYoutube')"
+                >
+                  <v-icon size="20">mdi-open-in-new</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+          </div>
+        </v-card-text>
+      </v-card>
+    </div>
+
+    <!-- Column 3 (Desktop right / Narrow directly under video): Talkiz Voice Agent -->
+    <div class="col-talkiz-agent">
+      <!-- No-credits blocking alert (when user has 0 credits) -->
+      <v-card
+        v-if="creditsDepleted"
+        variant="outlined"
+        class="pa-4 pa-sm-5 text-center w-100"
+        :style="{
+          borderColor: '#fecaca',
+          background: '#fef2f2',
+          borderRadius: project.proj_link_border_radius || '14px'
+        }"
       >
-        <v-icon start>mdi-lightning-bolt</v-icon>
-        {{ t('player.topUpCredits') }}
-      </v-btn>
-    </v-card>
+        <v-icon color="error" size="36" class="mb-2">mdi-clock-alert-outline</v-icon>
+        <div class="text-subtitle-1 font-weight-bold text-red-darken-2 mb-1">
+          {{ t('player.creditsDepletedTitle') }}
+        </div>
+        <div class="text-body-2 text-grey-darken-2 mb-4">
+          {{ t('player.creditsDepletedSubtitle') }}
+        </div>
+        <v-btn
+          color="var(--talkizColorBtn)"
+          class="text-white font-weight-bold"
+          rounded="pill"
+          elevation="2"
+          to="/billing"
+        >
+          <v-icon start>mdi-lightning-bolt</v-icon>
+          {{ t('player.topUpCredits') }}
+        </v-btn>
+      </v-card>
 
-    <!-- Talkiz Voice Agent Player (strictly disabled if YouTube embed is blocked by creator) -->
-    <div
-      v-else-if="!embedBlocked"
-      class="w-100 d-flex flex-column align-center"
-      :style="{ maxWidth: playerMaxWidth }"
-    >
-      <div class="w-100" @click.capture="onPlayerAreaClick">
-        <component
-          :is="playerComponent"
-          :key="project.proj_uid"
-          ref="agentPlayer"
-          :projectConfig="project"
-          :clientUid="project.proj_client_uid || project.client_uid"
-          :projectUid="project.proj_uid"
-          width="100%"
-          :height="project.proj_link_height || '150px'"
-          style="width: 100%; max-width: 100%;"
-          :bgColor="project.proj_link_display_bg_color || 'white'"
-          :bgCustom="project.proj_link_display_bg_custom || '#FFFFFF'"
-          :textColor="project.proj_link_display_text_color || 'black'"
-          :textCustom="project.proj_link_display_text_custom || '#000000'"
-          :borderRadius="project.proj_link_border_radius || '12px'"
-          :invitationText="project.proj_link_invitation_text || t('player.defaultInvitation')"
-          :voiceType="project.proj_oart_voice_type"
-          :voiceSpeed="project.proj_oart_voice_speed"
-          :temperature="project.proj_oart_temperature"
-          :suggestedQuestions="[
-            project.proj_plugin_btn_text_1,
-            project.proj_plugin_btn_text_2,
-            project.proj_plugin_btn_text_3,
-            project.proj_plugin_btn_text_4,
-            project.proj_plugin_btn_text_5
-          ]"
-          :autoStart="false"
-          :hasEmbeddedYoutubePlayer="!!youtubeVideoId && !embedBlocked"
-          @conversation-started="handleConversationStarted"
-          @seek-youtube="seekYoutubeVideo"
-          @close="handleConversationEnded"
-        />
-      </div>
-
-      <!-- AI Act Transparency Notice (permanently visible below the voice assistant card) -->
+      <!-- Talkiz Voice Agent Player (strictly disabled if YouTube embed is blocked by creator) -->
       <div
-        class="d-flex align-start ga-2 mt-2 px-2 text-left w-100"
-        style="font-size: 11.5px; color: #64748b; line-height: 1.45;"
+        v-else-if="!embedBlocked"
+        class="w-100 d-flex flex-column align-center"
       >
-        <v-icon size="15" color="#64748b" class="mt-0 flex-shrink-0" style="margin-top: 2px;">mdi-information-outline</v-icon>
-        <span>
-          {{ t('player.aiActNotice') }}
-        </span>
+        <div class="w-100" @click.capture="onPlayerAreaClick">
+          <component
+            :is="playerComponent"
+            :key="project.proj_uid"
+            ref="agentPlayer"
+            :projectConfig="project"
+            :clientUid="project.proj_client_uid || project.client_uid"
+            :projectUid="project.proj_uid"
+            width="100%"
+            :height="project.proj_link_height || '150px'"
+            style="width: 100%; max-width: 100%;"
+            :bgColor="project.proj_link_display_bg_color || 'white'"
+            :bgCustom="project.proj_link_display_bg_custom || '#FFFFFF'"
+            :textColor="project.proj_link_display_text_color || 'black'"
+            :textCustom="project.proj_link_display_text_custom || '#000000'"
+            :borderRadius="project.proj_link_border_radius || '14px'"
+            :invitationText="project.proj_link_invitation_text || t('player.defaultInvitation')"
+            :voiceType="project.proj_oart_voice_type"
+            :voiceSpeed="project.proj_oart_voice_speed"
+            :temperature="project.proj_oart_temperature"
+            :suggestedQuestions="[
+              project.proj_plugin_btn_text_1,
+              project.proj_plugin_btn_text_2,
+              project.proj_plugin_btn_text_3,
+              project.proj_plugin_btn_text_4,
+              project.proj_plugin_btn_text_5
+            ]"
+            :autoStart="false"
+            :hasEmbeddedYoutubePlayer="!!youtubeVideoId && !embedBlocked"
+            @conversation-started="handleConversationStarted"
+            @seek-youtube="seekYoutubeVideo"
+            @close="handleConversationEnded"
+          />
+        </div>
+
+        <!-- AI Act Transparency Notice (permanently visible below the voice assistant card) -->
+        <div
+          class="d-flex align-start ga-2 mt-2 px-1 text-left w-100"
+          style="font-size: 11.5px; color: #475569; line-height: 1.45;"
+        >
+          <v-icon size="15" color="#475569" class="mt-0 flex-shrink-0" style="margin-top: 2px;">mdi-information-outline</v-icon>
+          <span>
+            {{ t('player.aiActNotice') }}
+          </span>
+        </div>
       </div>
     </div>
 
@@ -503,3 +510,63 @@ onBeforeUnmount(() => {
   window.removeEventListener('message', handleYoutubeMessage)
 })
 </script>
+
+<style scoped>
+/* Narrow screens (mobile & portrait tablet): Video -> Agent -> My Videos */
+.workspace-3col {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  max-width: 1460px;
+  margin: 0 auto;
+}
+
+.col-video-player {
+  order: 1;
+  min-width: 0;
+}
+
+.col-talkiz-agent {
+  order: 2;
+  min-width: 0;
+}
+
+.col-my-videos {
+  order: 3;
+  min-width: 0;
+}
+
+/* Wide screens (>= 1024px): Col 1 My Videos | Col 2 Large Video Player | Col 3 Talkiz Agent */
+@media (min-width: 1024px) {
+  .workspace-3col {
+    grid-template-columns: 250px minmax(0, 1fr) 360px;
+    gap: 20px;
+  }
+
+  .col-my-videos {
+    order: 1;
+    position: sticky;
+    top: 80px;
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
+  }
+
+  .col-video-player {
+    order: 2;
+  }
+
+  .col-talkiz-agent {
+    order: 3;
+    position: sticky;
+    top: 80px;
+  }
+}
+
+@media (min-width: 1360px) {
+  .workspace-3col {
+    grid-template-columns: 270px minmax(0, 1fr) 380px;
+    gap: 24px;
+  }
+}
+</style>

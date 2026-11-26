@@ -83,20 +83,33 @@
           order: (bannerState === 'conversation' || (bannerState === 'initial' && activeSuggestedQuestions.length > 0)) ? 1 : 2,
         }"
       >
-        <div class="avatar-wrapper" style="width: 82px; height: 82px; position: relative;">
-          <AiMicAnimation
-            :isPulsing="bannerState === 'initial'"
-            :isListening="!isPaused && !isMuted && bannerState === 'conversation' && speakerState === 'listening'"
-            :isUserSpeaking="isUserSpeaking && !isPaused && !isMuted"
-            :userAudioLevel="userAudioLevel"
-            :isThinking="speakerState === 'thinking' && !isPaused"
-            :agentIsSpeaking="speakerState === 'speaking' && !isPaused"
-            :agentAudioLevel="agentAudioLevel"
-            :isSearchingWeb="isSearchingWeb && !isPaused"
-            :colorText="effectiveTextColor"
-            :colorBg="effectiveBgColor"
-          />
-        </div>
+        <v-tooltip
+          text="Cliquer ici et je répondrai à vos questions!"
+          location="top"
+          :disabled="bannerState !== 'initial' && !isPaused"
+        >
+          <template #activator="{ props: tooltipProps }">
+            <div
+              v-bind="tooltipProps"
+              class="avatar-wrapper"
+              style="width: 82px; height: 82px; position: relative; cursor: pointer;"
+              @click.stop="isPaused ? togglePause() : handleBannerClick()"
+            >
+              <AiMicAnimation
+                :isPulsing="isPulsing && (bannerState === 'initial' || isPaused)"
+                :isListening="!isPaused && !isMuted && bannerState === 'conversation' && speakerState === 'listening'"
+                :isUserSpeaking="isUserSpeaking && !isPaused && !isMuted"
+                :userAudioLevel="userAudioLevel"
+                :isThinking="speakerState === 'thinking' && !isPaused"
+                :agentIsSpeaking="speakerState === 'speaking' && !isPaused"
+                :agentAudioLevel="agentAudioLevel"
+                :isSearchingWeb="isSearchingWeb && !isPaused"
+                :colorText="effectiveTextColor"
+                :colorBg="effectiveBgColor"
+              />
+            </div>
+          </template>
+        </v-tooltip>
       </div>
     </div>
 
@@ -128,7 +141,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import AiMicAnimation from '../AiMicAnimation.vue'
 import { apiClient } from '../../services/api.js'
 
@@ -158,6 +171,7 @@ const bannerState = ref('initial') // 'initial' | 'connecting' | 'conversation' 
 const speakerState = ref('idle') // 'idle' | 'listening' | 'thinking' | 'speaking'
 const isPaused = ref(false)
 const isMuted = ref(false)
+const isPulsing = ref(false)
 const isUserSpeaking = ref(false)
 const isSearchingWeb = ref(false)
 const userAudioLevel = ref(0)
@@ -365,7 +379,7 @@ const extractTimestampsFromText = (text) => {
 
 const flushPendingSeekIfReady = () => {
   if (pendingSeekSeconds === null) return
-  if (activePlaybackSources.length > 0) return
+  if (!turnCompletedForPendingSeek || activePlaybackSources.length > 0) return
   const sec = pendingSeekSeconds
   pendingSeekSeconds = null
   turnCompletedForPendingSeek = false
@@ -373,7 +387,10 @@ const flushPendingSeekIfReady = () => {
     clearInterval(pendingSeekFallbackTimer)
     pendingSeekFallbackTimer = null
   }
-  emit('seek-youtube', sec)
+  // Small grace tail so the final syllable finishes playing cleanly before YouTube starts
+  setTimeout(() => {
+    emit('seek-youtube', sec)
+  }, 350)
 }
 
 const scheduleSeekAfterSpeech = (sec) => {
@@ -388,16 +405,16 @@ const scheduleSeekAfterSpeech = (sec) => {
       return
     }
     const elapsed = Date.now() - scheduledAt
-    // Trigger as soon as speech ends (after a minimum 900ms grace period) or hard cap at 12s
-    if ((elapsed >= 900 && activePlaybackSources.length === 0) || elapsed >= 12000) {
+    // Wait until turnComplete + audio queue empty; hard cap at 15s only if turnComplete never arrives
+    if ((turnCompletedForPendingSeek && activePlaybackSources.length === 0) || elapsed >= 15000) {
       const target = pendingSeekSeconds
       pendingSeekSeconds = null
       turnCompletedForPendingSeek = false
       clearInterval(pendingSeekFallbackTimer)
       pendingSeekFallbackTimer = null
-      emit('seek-youtube', target)
+      setTimeout(() => emit('seek-youtube', target), 350)
     }
-  }, 300)
+  }, 250)
 }
 
 const usageTotals = {
@@ -1122,7 +1139,30 @@ const onExternalMediaStoppedByUser = () => {
   }
 }
 
+let pulseInterval = null
+let pulseResetTimer = null
+
+const triggerPulseBeat = () => {
+  if (bannerState.value !== 'initial' && !isPaused.value) {
+    isPulsing.value = false
+    return
+  }
+  isPulsing.value = true
+  if (pulseResetTimer) clearTimeout(pulseResetTimer)
+  pulseResetTimer = setTimeout(() => {
+    isPulsing.value = false
+  }, 1050)
+}
+
+onMounted(() => {
+  triggerPulseBeat()
+  pulseInterval = setInterval(triggerPulseBeat, 3000)
+})
+
 onBeforeUnmount(() => {
+  if (pulseInterval) clearInterval(pulseInterval)
+  if (pulseResetTimer) clearTimeout(pulseResetTimer)
+  if (pendingSeekFallbackTimer) clearInterval(pendingSeekFallbackTimer)
   if (ws || captureStream || playbackContext) {
     cleanupAndPersist()
   }

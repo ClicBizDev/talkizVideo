@@ -4,11 +4,11 @@
     <v-app-bar
       :elevation="0"
       height="64"
-      style="background: rgba(255, 255, 255, 0.96) !important; backdrop-filter: blur(12px); border-bottom: 1px solid #e2e8f0;"
+      style="background: rgba(255, 255, 255, 0.98) !important; backdrop-filter: blur(12px); border-bottom: 1px solid #e2e8f0;"
     >
-      <div class="header-inner d-flex justify-space-between align-center w-100 h-100 px-2 px-sm-4">
+      <div class="header-inner d-flex justify-space-between align-center w-100 h-100 px-2 px-sm-4 ga-2 ga-md-4">
         <!-- Left: Videos drawer toggle + Logo -->
-        <div class="d-flex align-center ga-1 ga-sm-2" style="min-width: 0;">
+        <div class="d-flex align-center ga-1 ga-sm-2 flex-shrink-0" style="min-width: 0;">
           <v-btn
             v-if="authStore.isAuthenticated"
             variant="tonal"
@@ -19,19 +19,23 @@
             @click="toggleVideosDrawer"
           >
             <v-icon size="18" class="mr-sm-1">mdi-playlist-play</v-icon>
-            <span class="d-none d-sm-inline">{{ t('nav.myVideos') }}</span>
+            <span class="d-none d-lg-inline">{{ t('nav.myVideos') }}</span>
             <v-chip
               v-if="videosStore.videos.length > 0"
               size="x-small"
               color="primary"
               variant="flat"
-              class="ml-1 ml-sm-2 font-weight-bold"
+              class="ml-1 font-weight-bold"
             >
               {{ videosStore.videos.length }}
             </v-chip>
           </v-btn>
 
-          <NuxtLink to="/" class="d-flex align-center text-decoration-none ml-1 brand-link">
+          <NuxtLink
+            to="/"
+            class="d-flex align-center text-decoration-none ml-1 brand-link"
+            @click="goHome"
+          >
             <img
               src="/logo-talkiz-icon.svg?v=6"
               alt="Talkiz.yt"
@@ -41,6 +45,42 @@
               Talkiz<span class="brand-tld">.yt</span>
             </span>
           </NuxtLink>
+        </div>
+
+        <!-- Center: YouTube URL Input Pill (desktop / tablet >= 768px) -->
+        <div class="header-url-bar d-none d-md-flex align-center ga-2 flex-grow-1" style="max-width: 520px; min-width: 0;">
+          <div class="header-yt-pill flex-grow-1 d-flex align-center">
+            <input
+              v-model="videosStore.youtubeUrlInput"
+              type="url"
+              :placeholder="t('home.urlPlaceholder')"
+              class="header-yt-input"
+              :disabled="videosStore.isProcessingUrl"
+              @keyup.enter="submitHeaderUrl"
+            />
+            <button
+              v-if="videosStore.youtubeUrlInput && !videosStore.isProcessingUrl"
+              type="button"
+              class="header-yt-clear"
+              :title="t('common.clear')"
+              @click="videosStore.youtubeUrlInput = ''"
+            >
+              ✕
+            </button>
+          </div>
+          <v-btn
+            icon
+            color="#2196F3"
+            size="38"
+            elevation="1"
+            class="flex-shrink-0"
+            :loading="videosStore.isProcessingUrl"
+            :disabled="videosStore.isProcessingUrl"
+            :title="t('home.analyzeTooltip')"
+            @click="submitHeaderUrl"
+          >
+            <v-icon color="white" size="22">mdi-plus</v-icon>
+          </v-btn>
         </div>
 
         <!-- Right: Sign in with Google (when logged out) -->
@@ -126,6 +166,42 @@
     <AccountDialog v-if="authStore.isAuthenticated" v-model="showAccountDialog" />
 
     <v-main class="d-flex flex-column" style="background: #DCEBFE; min-height: 100vh;">
+      <!-- Mobile / Small Tablet URL Bar attached directly under the white header (< 960px / md) -->
+      <div class="mobile-url-subbar d-flex d-md-none align-center ga-2 px-3 py-2">
+        <div class="header-yt-pill flex-grow-1 d-flex align-center">
+          <input
+            v-model="videosStore.youtubeUrlInput"
+            type="url"
+            :placeholder="t('home.urlPlaceholder')"
+            class="header-yt-input"
+            :disabled="videosStore.isProcessingUrl"
+            @keyup.enter="submitHeaderUrl"
+          />
+          <button
+            v-if="videosStore.youtubeUrlInput && !videosStore.isProcessingUrl"
+            type="button"
+            class="header-yt-clear"
+            :title="t('common.clear')"
+            @click="videosStore.youtubeUrlInput = ''"
+          >
+            ✕
+          </button>
+        </div>
+        <v-btn
+          icon
+          color="#2196F3"
+          size="40"
+          elevation="1"
+          class="flex-shrink-0"
+          :loading="videosStore.isProcessingUrl"
+          :disabled="videosStore.isProcessingUrl"
+          :title="t('home.analyzeTooltip')"
+          @click="submitHeaderUrl"
+        >
+          <v-icon color="white" size="22">mdi-plus</v-icon>
+        </v-btn>
+      </div>
+
       <div class="flex-grow-1">
         <slot />
       </div>
@@ -209,6 +285,18 @@ const toggleVideosDrawer = () => {
   }
 }
 
+const goHome = () => {
+  videosStore.clearActiveVideo()
+}
+
+const submitHeaderUrl = () => {
+  const route = useRoute()
+  if (route.path !== '/') {
+    navigateTo('/')
+  }
+  videosStore.triggerUrlSubmit()
+}
+
 let authListener = null
 
 onMounted(() => {
@@ -262,6 +350,60 @@ onUnmounted(() => {
 
 .brand-tld {
   color: #E51919;
+}
+
+.mobile-url-subbar {
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 64px;
+  z-index: 10;
+}
+
+.header-yt-pill {
+  background: #f8fafc;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 12px;
+  height: 38px;
+  padding: 0 12px;
+  min-width: 0;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+.header-yt-pill:focus-within {
+  background: #ffffff;
+  border-color: #2196F3;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.14);
+}
+
+.header-yt-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 0.9rem;
+  color: #0f172a;
+  background: transparent;
+  min-width: 0;
+}
+
+.header-yt-input::placeholder {
+  color: #94a3b8;
+}
+
+.header-yt-clear {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 3px 5px;
+  line-height: 1;
+  border-radius: 50%;
+}
+
+.header-yt-clear:hover {
+  color: #0f172a;
+  background: #e2e8f0;
 }
 
 .legal-footer {

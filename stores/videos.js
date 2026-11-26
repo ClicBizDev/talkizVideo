@@ -5,13 +5,30 @@ import { useAuthStore } from './auth'
 export const useVideosStore = defineStore('videos', {
     state: () => ({
         videos: [],
+        recentVideos: [],
         loadingList: false,
         activeVideo: null,
         loadingActiveVideo: false,
         drawerOpen: false,
+        youtubeUrlInput: '',
+        isProcessingUrl: false,
+        submitNonce: 0,
     }),
 
     actions: {
+        triggerUrlSubmit() {
+            this.submitNonce++
+        },
+
+        async fetchRecentVideos(limit = 10) {
+            try {
+                const list = await videoService.getRecentVideos(limit)
+                this.recentVideos = list
+            } catch (err) {
+                console.warn('[VideosStore] Error fetching recent videos:', err)
+            }
+        },
+
         async fetchVideos(clientUid) {
             if (!clientUid) return
             this.loadingList = true
