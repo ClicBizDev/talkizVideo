@@ -189,7 +189,7 @@
         </v-card-title>
 
         <v-card-text class="text-body-2 text-grey-darken-2 pt-3 pb-2" style="line-height: 1.55;">
-          {{ t('player.micConsent.bodyBefore') }}<strong>{{ t('player.micConsent.bodyProvider') }}</strong>{{ t('player.micConsent.bodyAfter') }}
+          {{ t('player.micConsent.bodyBefore') }}<strong>{{ t('player.micConsent.bodyProvider') }}</strong>{{ t('player.micConsent.bodyProviderAnd') }}<strong>{{ t('player.micConsent.bodyProvider2') }}</strong>{{ t('player.micConsent.bodyAfter') }}
           <div class="mt-3">
             <NuxtLink
               to="/confidentialite"

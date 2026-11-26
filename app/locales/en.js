@@ -82,7 +82,9 @@ export default {
     micConsent: {
       title: 'Microphone activation',
       bodyBefore: 'To answer your spoken questions, your voice stream is transmitted in real time to our technical providers ',
-      bodyProvider: 'OpenAI and Google',
+      bodyProvider: 'OpenAI',
+      bodyProviderAnd: ' and ',
+      bodyProvider2: 'Google',
       bodyAfter:
         ' (United States, not used for model training). Your voice is not recorded or stored as an audio file on our servers.',
       privacyLink: 'Read our Privacy Policy',
