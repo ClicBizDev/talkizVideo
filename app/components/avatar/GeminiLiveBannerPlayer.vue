@@ -875,8 +875,27 @@ const handleServerMessage = async (rawData) => {
 
   if (msg.usageMetadata) {
     const u = msg.usageMetadata
-    usageTotals.input_text_tokens = Math.max(usageTotals.input_text_tokens, u.promptTokenCount || 0)
-    usageTotals.output_text_tokens = Math.max(usageTotals.output_text_tokens, u.responseTokenCount || 0)
+    const promptDetails = Array.isArray(u.promptTokensDetails) ? u.promptTokensDetails : []
+    const respDetails = Array.isArray(u.responseTokensDetails) ? u.responseTokensDetails : []
+    let pText = 0
+    let pAudio = 0
+    for (const d of promptDetails) {
+      if (d?.modality === 'AUDIO') pAudio += Number(d.tokenCount) || 0
+      else pText += Number(d.tokenCount) || 0
+    }
+    let rText = 0
+    let rAudio = 0
+    for (const d of respDetails) {
+      if (d?.modality === 'AUDIO') rAudio += Number(d.tokenCount) || 0
+      else rText += Number(d.tokenCount) || 0
+    }
+    if (!promptDetails.length && u.promptTokenCount) pText = Number(u.promptTokenCount) || 0
+    if (!respDetails.length && u.responseTokenCount) rAudio = Number(u.responseTokenCount) || 0
+
+    usageTotals.input_text_tokens = Math.max(usageTotals.input_text_tokens, pText)
+    usageTotals.input_audio_tokens = Math.max(usageTotals.input_audio_tokens, pAudio)
+    usageTotals.output_text_tokens = Math.max(usageTotals.output_text_tokens, rText)
+    usageTotals.output_audio_tokens = Math.max(usageTotals.output_audio_tokens, rAudio)
   }
 
   if (msg.toolCall) {
@@ -926,12 +945,12 @@ const handleServerMessage = async (rawData) => {
     const lastAiText = currentAiTranscript.trim()
     if (lastUserText) {
       devLog('🧑 USER:', lastUserText)
-      transcriptEntries.push({ role: 'user', text: lastUserText })
+      transcriptEntries.push({ role: 'user', content: lastUserText })
       currentUserTranscript = ''
     }
     if (lastAiText) {
       devLog('🤖 AI:', lastAiText)
-      transcriptEntries.push({ role: 'assistant', text: lastAiText })
+      transcriptEntries.push({ role: 'assistant', content: lastAiText })
       currentAiTranscript = ''
       // Always extract any spoken timestamps into clickable jump buttons
       if (props.hasEmbeddedYoutubePlayer) {
@@ -975,6 +994,10 @@ const startSession = async (initialQuestion = null, forcedVoice = null) => {
   pausedTotalMs = 0
   pauseStartedAtMs = 0
   transcriptEntries = []
+  usageTotals.input_text_tokens = 0
+  usageTotals.input_audio_tokens = 0
+  usageTotals.output_text_tokens = 0
+  usageTotals.output_audio_tokens = 0
   timestampActions.value = []
   pendingSeekSeconds = null
   turnCompletedForPendingSeek = false
@@ -1072,8 +1095,13 @@ const cleanupAndPersist = async () => {
     try { oldWs.close() } catch (_) {}
   }
 
-  const activeDurationMs = sessionStartTimeMs
-    ? Math.max(0, Date.now() - sessionStartTimeMs - pausedTotalMs)
+  const startedAtMs = sessionStartTimeMs
+  if (pauseStartedAtMs) {
+    pausedTotalMs += Date.now() - pauseStartedAtMs
+    pauseStartedAtMs = 0
+  }
+  const activeDurationMs = startedAtMs
+    ? Math.max(0, Date.now() - startedAtMs - pausedTotalMs)
     : 0
   sessionStartTimeMs = 0
 
@@ -1083,16 +1111,56 @@ const cleanupAndPersist = async () => {
   conversationEnded.value = true
   isPaused.value = false
 
+  // Flush any in-progress partial transcripts
+  if (currentUserTranscript.trim()) {
+    transcriptEntries.push({ role: 'user', content: currentUserTranscript.trim() })
+    currentUserTranscript = ''
+  }
+  if (currentAiTranscript.trim()) {
+    transcriptEntries.push({ role: 'assistant', content: currentAiTranscript.trim() })
+    currentAiTranscript = ''
+  }
+
   if (!hasSavedConversation && activeDurationMs >= 2000 && props.projectUid) {
     hasSavedConversation = true
     const durationSec = Math.round(activeDurationMs / 1000)
+    const durationMin = Math.floor(durationSec / 60)
+    const durationRemSec = durationSec % 60
+    const durationFormatted = `${durationMin}m ${durationRemSec}s`
+
+    const totalInputTokens = (usageTotals.input_text_tokens || 0) + (usageTotals.input_audio_tokens || 0)
+    const totalOutputTokens = (usageTotals.output_text_tokens || 0) + (usageTotals.output_audio_tokens || 0)
+    const normalizedTokenUsage = {
+      provider: 'gemini-live',
+      input_tokens: totalInputTokens,
+      output_tokens: totalOutputTokens,
+      total_tokens: totalInputTokens + totalOutputTokens,
+      input_text_tokens: usageTotals.input_text_tokens || 0,
+      input_audio_tokens: usageTotals.input_audio_tokens || 0,
+      output_text_tokens: usageTotals.output_text_tokens || 0,
+      output_audio_tokens: usageTotals.output_audio_tokens || 0,
+      input_token_details: {
+        text_tokens: usageTotals.input_text_tokens || 0,
+        audio_tokens: usageTotals.input_audio_tokens || 0,
+      },
+      output_token_details: {
+        text_tokens: usageTotals.output_text_tokens || 0,
+        audio_tokens: usageTotals.output_audio_tokens || 0,
+      },
+    }
+
     try {
       await apiClient().post('/conversations/save', {
         projectUid: props.projectUid,
         transcript: transcriptEntries,
-        duration: activeDurationMs,
-        timestamp: new Date().toISOString(),
-        tokenUsage: usageTotals,
+        duration: {
+          milliseconds: activeDurationMs,
+          seconds: durationSec,
+          formatted: durationFormatted,
+        },
+        timestamp: new Date(startedAtMs).toISOString(),
+        tokenUsage: normalizedTokenUsage,
+        playerLang: props.projectConfig?.proj_admin_language || 'en',
       })
     } catch (e) {
       console.warn('[GeminiLive] Failed to save conversation:', e?.message || e)
